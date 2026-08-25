@@ -106,15 +106,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#050505] text-slate-100 font-sans selection:bg-blue-500/30">
       
-      {/* Navbar */}
-      <nav className="border-b border-white/5 bg-white/[0.01]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            AI Job <span className="text-blue-500">Match</span>
-          </div>
 
-        </div>
-      </nav>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
@@ -122,11 +114,8 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="text-left">
             <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
-              Instant Data & AI Job Board
+              Data Roles from Greenhouse, Workday and Lever
             </h1>
-            <p className="text-lg text-slate-400">
-              A lightning-fast, zero-friction table of the latest roles.
-            </p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
