@@ -112,10 +112,7 @@ export default function Home() {
           <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
             AI Job <span className="text-blue-500">Match</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 text-xs font-medium">
-            <Database className="size-3" />
-            Live Data Roles
-          </div>
+
         </div>
       </nav>
 

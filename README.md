@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Job Match
 
-## Getting Started
+An automated, self-cleaning job board that aggregates the internet's best Data & AI roles from top technology companies.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Automated Triple-Scraper Engine:** A custom Python scraping pipeline that hits API endpoints for Greenhouse (Top Tech), Workday (Enterprises), and Lever (Startups). 
+- **Auto-Cleaning Database:** The script automatically deletes jobs older than 45 days, keeping the Supabase storage tiny and 100% free forever.
+- **Nightly Cloud Sync:** Triggered via GitHub Actions at midnight UTC to automatically sync new jobs into the database.
+- **Client-Side Filtering:** An incredibly fast Next.js frontend with instant client-side filtering for Experience Level and Posting Date.
+- **Premium UI:** Built with Tailwind CSS and Framer Motion for a sleek, dark-mode user experience.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend:** Next.js (React), Tailwind CSS, Framer Motion
+- **Backend/Database:** Supabase (PostgreSQL)
+- **Scraper Engine:** Python, BeautifulSoup4, Requests
+- **Automation:** GitHub Actions (cron)
+- **Hosting:** Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This platform is completely zero-maintenance and runs on free-tier infrastructure. Vercel hosts the website, Supabase hosts the data, and GitHub Actions handles the nightly scraping loop.
