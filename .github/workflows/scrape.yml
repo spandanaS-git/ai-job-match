@@ -1,6 +1,9 @@
 name: Nightly Job Scraper
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     # Runs at midnight UTC every day
     - cron: '0 0 * * *'
