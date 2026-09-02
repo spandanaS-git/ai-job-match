@@ -17,23 +17,29 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 # A list of top tech companies. The script will automatically skip any that don't use Greenhouse.
 GREENHOUSE_BOARDS = [
-    'stripe', 'discord', 'reddit', 'dropbox', 'figma', 'airbnb', 'coinbase', 
-    'twilio', 'plaid', 'affirm', 'doordash', 'instacart', 'pinterest', 
-    'lyft', 'slack', 'brex', 'scaleai', 'ramp', 'rippling', 'databricks',
-    'anthropic', 'openai', 'notion', 'canva', 'roblox', 'duolingo', 'gitlab',
-    'cloudflare', 'snowflake', 'crowdstrike', 'okta', 'zscaler', 'hubspot',
-    'flexport', 'gusto', 'toast', 'verkada', 'anduril', 'gong', 'fivetran',
-    'hashicorp', 'confluent', 'segment', 'asana', 'zoom', 'docusign',
-    'peloton', 'spotify', 'square', 'cashapp', 'robinhood', 'wealthfront',
-    'betterment', 'chime', 'sofi', 'opendoor', 'zillow', 'redfin',
-    'coursera', 'udemy', 'masterclass', 'skillshare', 'outreach', 'braze',
-    'datarobot', 'c3ai', 'palantir', 'splunk', 'newrelic', 'datadog',
-    'appdynamics', 'mulesoft', 'tableau', 'looker', 'mongodb', 'elastic',
-    'couchbase', 'redis', 'neo4j', 'docker', 'snyk', 'paloaltonetworks', 
-    'fortinet', 'fireeye', 'rapid7', 'tenable', 'auth0', 'pingidentity', 
-    'forgerock', 'cyberark', 'sailpoint', 'atlassian', 'monday', 
-    'smartsheet', 'wrike', 'airtable', 'coda', 'foursquare', 'yelp',
-    'zocdoc', 'compass', 'lemonade', 'root', 'oscarhealth', '23andme'
+    'pinterest', 'airbnb', 'dropbox', 'figma', 'reddit', 'openai', 'anthropic', 
+    'databricks', 'snowflake', 'stripe', 'block', 'twilio', 'robinhood', 'coinbase', 
+    'doordash', 'uber', 'lyft', 'instacart', 'spotify', 'zillow', 'docusign', 
+    'zoom', 'slack', 'atlassian', 'hubspot', 'servicenow', 'workday', 'paloaltonetworks', 
+    'crowdstrike', 'okta', 'zscaler', 'cloudflare', 'mongodb', 'splunk', 'elastic', 
+    'datadog', 'newrelic', 'appdynamics', 'github', 'gitlab', 'hashicorp', 'pagerduty', 
+    'fastly', 'wayfair', 'peloton', 'roblox', 'discord', 'canva', 'notion', 'asana',
+    'brex', 'plaid', 'fivetran', 'gong', 'outreach', 'braze', 'ramp', 'rippling',
+    'scaleai', 'anduril', 'verkada', 'toast', 'gusto', 'flexport', 'segment', 'confluent',
+    'coursera', 'udemy', 'masterclass', 'skillshare', 'opendoor', 'redfin', 'sofi', 'chime',
+    'betterment', 'wealthfront', 'cashapp', 'squarespace', 'wix', 'godaddy', 'mailchimp',
+    'surveymonkey', 'eventbrite', 'glassdoor', 'yelp', 'tripadvisor', 'expedia', 'kayak',
+    'zocdoc', 'teladoc', '23andme', 'color', 'tempus', 'grail', 'benchling', 'veeva',
+    'flatironhealth', 'oscarhealth', 'lemonade', 'rootinsurance', 'strava', 'whoop', 'oura',
+    'calm', 'headspace', 'minted', 'thumbtack', 'taskrabbit', 'rover', 'postmates', 'caviar',
+    'grubhub', 'seamless', 'blueapron', 'hellofresh', 'sweetgreen', 'cava', 'warbyparker',
+    'allbirds', 'glossier', 'casper', 'away', 'dollarshaveclub', 'renttherunway', 'stitchfix',
+    'thredup', 'poshmark', 'depop', 'stockx', 'goat', 'grailed', 'vinted', 'letgo', 'offerup',
+    'mercari', 'carousell', 'shopee', 'lazada', 'tokopedia', 'bukalapak', 'gojek', 'grab',
+    'traveloka', 'deliveroo', 'justeat', 'foodpanda', 'swiggy', 'zomato', 'talabat', 'careem',
+    'epicgames', 'unity', 'niantic', 'scopely', 'zynga', 'playrix', 'king', 'supercell',
+    'riotgames', 'blizzard', 'electronicarts', 'take2', 'ubisoft', 'squareenix', 'capcom',
+    'sega', 'bandainamco', 'konami', 'nintendo', 'sonyinteractive', 'xbox', 'twitch', 'patreon'
 ]
 
 # High-profile Workday tenants
