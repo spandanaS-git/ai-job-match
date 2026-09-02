@@ -352,7 +352,7 @@ def cleanup_old_jobs():
     print("Cleaning up old jobs to prevent database bloat...")
     try:
         from datetime import datetime, timedelta
-        cutoff = datetime.now() - timedelta(days=45)
+        cutoff = datetime.now() - timedelta(days=60)
         
         headers = {
             "apikey": SUPABASE_KEY,
@@ -360,10 +360,10 @@ def cleanup_old_jobs():
             "Content-Type": "application/json"
         }
         
-        # Delete jobs where posted_at is older than 45 days
+        # Delete jobs where posted_at is older than 60 days
         res = requests.delete(f"{SUPABASE_URL}/rest/v1/jobs?posted_at=lt.{cutoff.isoformat()}", headers=headers)
         
-        # Also delete jobs where created_at is older than 45 days (just in case posted_at was null)
+        # Also delete jobs where created_at is older than 60 days (just in case posted_at was null)
         res2 = requests.delete(f"{SUPABASE_URL}/rest/v1/jobs?created_at=lt.{cutoff.isoformat()}", headers=headers)
         
         print(f"Cleanup complete. Status 1: {res.status_code}, Status 2: {res2.status_code}")

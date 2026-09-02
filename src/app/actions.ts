@@ -11,16 +11,16 @@ export async function fetchLatestDataJobs() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
     
-    // Fetch jobs posted in the last 45 days (the frontend has a 30-day filter)
+    // Fetch jobs posted in the last 60 days
     const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - 45)
+    cutoffDate.setDate(cutoffDate.getDate() - 60)
     
     const { data: jobs, error } = await supabase
       .from('jobs')
       .select('id, title, company, experience_required, url, created_at, posted_at')
       .gte('posted_at', cutoffDate.toISOString())
       .order('posted_at', { ascending: false })
-      .limit(3000)
+      .limit(10000)
       
     if (error) throw error
     
