@@ -20,7 +20,7 @@ export async function fetchLatestDataJobs() {
       .select('id, title, company, experience_required, url, created_at, posted_at')
       .gte('posted_at', cutoffDate.toISOString())
       .order('posted_at', { ascending: false })
-      .limit(500)
+      .limit(3000)
       
     if (error) throw error
     
