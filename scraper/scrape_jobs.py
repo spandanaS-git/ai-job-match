@@ -67,6 +67,23 @@ LEVER_BOARDS = [
     'grubhub', 'ubereats', 'instacart', 'shipt', 'gopuff', 'gorillas', 'getir', 'flink'
 ]
 
+def is_usa_job(location_str):
+    if not location_str:
+        return True # Default to keeping it if no location is provided
+        
+    loc = location_str.lower()
+    
+    # Exclude explicit international locations
+    exclude_terms = ['canada', 'uk', 'united kingdom', 'india', 'london', 'toronto', 'vancouver', 'berlin', 'germany', 'australia', 'sydney', 'emea', 'apac', 'ireland', 'dublin', 'france', 'paris', 'singapore']
+    if any(term in loc for term in exclude_terms):
+        return False
+        
+    # Include explicit US locations
+    include_terms = ['us', 'usa', 'united states', 'remote', 'ca', 'ny', 'tx', 'wa', 'california', 'new york', 'texas', 'washington', 'boston', 'chicago', 'austin', 'seattle', 'san francisco']
+    
+    # If we have an include term, or if it doesn't have an exclude term, we err on the side of keeping it
+    return True
+
 def scrape_greenhouse():
     print("Scraping Greenhouse boards...")
     for company in GREENHOUSE_BOARDS:
@@ -109,11 +126,15 @@ def scrape_greenhouse():
 
                     exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
                     
+                    location_str = job.get('location', {}).get('name', 'Remote')
+                    if not is_usa_job(location_str):
+                        continue
+                    
                     job_record = {
                         "title": job.get('title'),
                         "company": company.capitalize(),
-                        "location": job.get('location', {}).get('name', 'Remote'),
-                        "description": clean_text[:15000], # Ensure we don't blow up the text column
+                        "location": location_str,
+                        "description": clean_text[:15000],
                         "url": job.get('absolute_url'),
                         "source": "greenhouse",
                         "experience_required": exp_req,
@@ -204,10 +225,14 @@ def scrape_workday():
                     # but typically Workday has a start date in the API. We'll use startDate if available, else None.
                     posted_at = job_data.get('jobPostingInfo', {}).get('startDate')
                     
+                    location_str = job.get('locationsText', 'Remote')
+                    if not is_usa_job(location_str):
+                        continue
+                    
                     job_record = {
                         "title": job.get('title'),
                         "company": tenant.capitalize(),
-                        "location": job.get('locationsText', 'Remote'),
+                        "location": location_str,
                         "description": clean_text[:15000],
                         "url": f"https://{tenant}.{wd}.myworkdayjobs.com/en-US/{site}{job_path}",
                         "source": "workday",
@@ -267,10 +292,14 @@ def scrape_lever():
                     from datetime import datetime
                     posted_at = datetime.fromtimestamp(created_at_ms / 1000.0).isoformat()
                 
+                location_str = job.get('categories', {}).get('location', 'Remote')
+                if not is_usa_job(location_str):
+                    continue
+                
                 job_record = {
                     "title": job.get('text'),
                     "company": company.capitalize(),
-                    "location": job.get('categories', {}).get('location', 'Remote'),
+                    "location": location_str,
                     "description": clean_text[:15000],
                     "url": job.get('hostedUrl'),
                     "source": "lever",
