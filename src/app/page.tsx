@@ -97,7 +97,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="text-left">
             <h1 className="text-3xl font-bold tracking-tight mb-1 text-slate-100">
-              Data Roles
+              Data / AI Roles
             </h1>
             <p className="text-sm text-slate-500 font-medium">
               from Greenhouse, Workday and Lever
