@@ -10,9 +10,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [expFilter, setExpFilter] = useState("all")
-  const [timeFilter, setTimeFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false)
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
@@ -79,21 +77,6 @@ export default function Home() {
     
     if (!expMatch) return false
 
-    // 2. Time Filter
-    if (timeFilter === "all") return true
-    
-    const jobDate = job.posted_at || job.created_at
-    if (!jobDate) return false
-    
-    const postedDate = new Date(jobDate)
-    const today = new Date()
-    const diffTime = today.getTime() - postedDate.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (timeFilter === "today") return diffDays <= 0
-    if (timeFilter === "week") return diffDays <= 7
-    if (timeFilter === "month") return diffDays <= 30
-    
     return true
   })
 
@@ -113,72 +96,15 @@ export default function Home() {
         {/* Header and Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="text-left">
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+            <h1 className="text-3xl font-bold tracking-tight mb-1 text-slate-100">
               Data Roles
             </h1>
-            <p className="text-lg text-slate-400">
+            <p className="text-sm text-slate-500 font-medium">
               from Greenhouse, Workday and Lever
             </p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Time Filter Dropdown */}
-            <div className="relative flex-shrink-0 z-40">
-              <button 
-                type="button"
-                onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
-                className="flex items-center justify-between w-48 px-4 py-3 bg-white/5 border border-white/10 text-slate-200 text-sm rounded-xl hover:bg-white/10 transition-colors shadow-lg"
-              >
-                {
-                  {
-                    'all': 'Any Time',
-                    'today': 'Today',
-                    'week': 'Last 7 Days',
-                    'month': 'Last 30 Days'
-                  }[timeFilter]
-                }
-                <ChevronDown className={`size-4 text-slate-400 transition-transform ${isTimeDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {isTimeDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-30" 
-                    onClick={() => setIsTimeDropdownOpen(false)}
-                  ></div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-full mt-2 w-full bg-[#151515] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-40 flex flex-col"
-                  >
-                    {[
-                      { value: 'all', label: 'Any Time' },
-                      { value: 'today', label: 'Today' },
-                      { value: 'week', label: 'Last 7 Days' },
-                      { value: 'month', label: 'Last 30 Days' }
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          setTimeFilter(opt.value)
-                          setIsTimeDropdownOpen(false)
-                          setCurrentPage(1)
-                        }}
-                        className={`w-full text-left px-4 py-3 text-sm transition-colors ${
-                          timeFilter === opt.value 
-                            ? 'bg-blue-500/20 text-blue-400 font-medium border-l-2 border-blue-500' 
-                            : 'text-slate-300 hover:bg-white/5 border-l-2 border-transparent'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </div>
-
             {/* Experience Filter Dropdown */}
             <div className="relative flex-shrink-0 z-50">
               <button 
