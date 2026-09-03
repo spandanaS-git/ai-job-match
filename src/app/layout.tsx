@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Job Match | Zero-Cost AI Job Search",
-  description: "Upload your resume and let our AI match you with top jobs scraped from Greenhouse and Workday.",
+  title: "AI Job Finder | Data & AI Roles",
+  description: "Browse the latest Data & AI jobs from top tech companies.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
