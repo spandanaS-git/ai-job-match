@@ -240,7 +240,12 @@ export default function Home() {
                     </td>
                   </tr>
                 ) : (
-                  currentJobs.map((job, i) => (
+                  currentJobs.map((job, i) => {
+                    const jobDate = job.posted_at || job.created_at;
+                    const diffTime = new Date().getTime() - new Date(jobDate).getTime();
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    return (
                     <motion.tr 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -249,7 +254,12 @@ export default function Home() {
                       className="border-b border-white/5 hover:bg-white/[0.04] transition-colors group"
                     >
                       <td className="px-6 py-4 font-medium text-white group-hover:text-blue-400 transition-colors">
-                        {job.title}
+                        <div className="flex items-center gap-2">
+                          {job.title}
+                          {diffDays <= 1 && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">NEW</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {job.company}
@@ -280,7 +290,8 @@ export default function Home() {
                         </a>
                       </td>
                     </motion.tr>
-                  ))
+                  )
+                })
                 )}
               </tbody>
             </table>
