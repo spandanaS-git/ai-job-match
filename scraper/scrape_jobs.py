@@ -69,7 +69,6 @@ WORKDAY_BOARDS = [
     { 'tenant': 'jacobs', 'board': 'jacobs', 'wd': 'wd1' },
     { 'tenant': 'fluor', 'board': 'fluor', 'wd': 'wd1' },
     { 'tenant': 'skanska', 'board': 'skanska', 'wd': 'wd3' },
-,
     { 'tenant': 'ea', 'board': 'EA_External', 'wd': 'wd5' },
     { 'tenant': 'roblox', 'board': 'Roblox_Careers', 'wd': 'wd5' },
     { 'tenant': 'zoom', 'board': 'Zoom', 'wd': 'wd5' },
