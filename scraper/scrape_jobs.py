@@ -43,6 +43,15 @@ GREENHOUSE_BOARDS = [
 ]
 
 # High-profile Workday tenants
+ASHBY_BOARDS = [
+    'notion', 'vercel', 'linear', 'discord', 'ramp', 'brex', 'deel', 
+    'drata', 'vanta', 'fivetran', 'gong', 'loom', 'gem', 'apollo', 'anthropic', 
+    'cohere', 'replit', 'jasper', 'midjourney', 'stabilityai', 'huggingface',
+    'pinecone', 'langchain', 'perplexity', 'character', 'inflection', 'adept',
+    'runway', 'descript', 'synthesia', 'weightsandbiases', 'scale', 'snorkel',
+    'cred', ' CRED', 'groww', 'upstox', 'coinbase', 'kraken', 'gemini'
+]
+
 WORKDAY_BOARDS = [
     { 'tenant': 'nvidia', 'board': 'NVIDIAExternalCareerSite', 'wd': 'wd5' },
     { 'tenant': 'salesforce', 'board': 'External_Career_Site', 'wd': 'wd1' },
