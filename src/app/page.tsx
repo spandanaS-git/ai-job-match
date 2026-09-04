@@ -286,32 +286,6 @@ export default function Home() {
             </table>
           </div>
           
-          {/* Pagination Controls */}
-          {!loading && filteredJobs.length > 0 && (
-            <div className="px-6 py-4 border-t border-white/10 bg-white/[0.01] flex items-center justify-between">
-              <span className="text-sm text-slate-400">
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs
-              </span>
-              <div className="flex gap-2">
-                <button 
-                  type="button"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 text-sm font-medium text-white bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:hover:bg-white/5 transition-colors"
-                >
-                  Previous
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 text-sm font-medium text-white bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:hover:bg-white/5 transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </main>
       
