@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2 } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search } from "lucide-react"
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [expFilter, setExpFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   
@@ -76,6 +77,14 @@ export default function Home() {
     }
     
     if (!expMatch) return false
+    
+    // 2. Search Filter
+    if (searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase()
+      const titleMatch = (job.title || "").toLowerCase().includes(query)
+      const companyMatch = (job.company || "").toLowerCase().includes(query)
+      if (!titleMatch && !companyMatch) return false
+    }
 
     return true
   })
@@ -104,7 +113,24 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-3 md:items-center">
+            {/* Search Bar */}
+            <div className="relative z-40">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search roles, companies..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full sm:w-64 pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-slate-200 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-lg placeholder:text-slate-500"
+              />
+            </div>
+
             {/* Experience Filter Dropdown */}
             <div className="relative flex-shrink-0 z-50">
               <button 
