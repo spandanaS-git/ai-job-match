@@ -9,6 +9,8 @@ export default function Home() {
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [totalJobsMetric, setTotalJobsMetric] = useState(0)
+  const [totalCompaniesMetric, setTotalCompaniesMetric] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
   const [expFilter, setExpFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -22,6 +24,8 @@ export default function Home() {
       const res = await fetchLatestDataJobs()
       if (res.success) {
         setJobs(res.jobs)
+        if (res.totalJobs) setTotalJobsMetric(res.totalJobs)
+        if (res.totalCompanies) setTotalCompaniesMetric(res.totalCompanies)
       } else {
         setError(res.error)
       }
@@ -108,9 +112,17 @@ export default function Home() {
             <h1 className="text-3xl font-bold tracking-tight mb-1 text-slate-100">
               Data / AI Roles
             </h1>
-            <p className="text-sm text-slate-500 font-medium">
-              from Greenhouse, Workday and Lever
-            </p>
+            {totalJobsMetric > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <p className="text-sm text-slate-400 font-medium">
+                  Tracking <span className="text-emerald-400 font-semibold">{totalJobsMetric.toLocaleString()}</span> active roles across <span className="text-white font-semibold">{totalCompaniesMetric}+</span> top tech companies
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
