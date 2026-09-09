@@ -104,7 +104,7 @@ def scrape_greenhouse():
             for job in jobs:
                 # Filter ONLY for Data & AI roles
                 title = job.get('title', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
+                tech_keywords = ['data', 'machine learning', ' ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                 
@@ -200,7 +200,7 @@ def scrape_workday():
             
             for job in jobs:
                 title = job.get('title', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
+                tech_keywords = ['data', 'machine learning', ' ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                     
@@ -275,7 +275,7 @@ def scrape_lever():
             
             for job in jobs:
                 title = job.get('text', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
+                tech_keywords = ['data', 'machine learning', ' ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                     
@@ -346,7 +346,7 @@ def scrape_ashby():
                     inserted = 0
                     for job in jobs:
                         title = job.get('title', '').lower()
-                        tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation']
+                        tech_keywords = ['data', 'machine learning', ' ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                         if not any(keyword in title for keyword in tech_keywords):
                             continue
                             
