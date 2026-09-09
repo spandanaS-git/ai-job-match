@@ -41,11 +41,20 @@ export default function Home() {
     if (searchQuery && !titleMatch && !companyMatch) return false
     
     if (expFilter !== 'all') {
-      const exp = (job.experience_required || "").toLowerCase()
-      if (expFilter === 'entry' && !exp.includes('0') && !exp.includes('1') && !exp.includes('2')) return false
-      if (expFilter === 'mid' && !exp.includes('3') && !exp.includes('4') && !exp.includes('5')) return false
-      if (expFilter === 'senior' && !exp.includes('6') && !exp.includes('7') && !exp.includes('8') && !exp.includes('9')) return false
-      if (expFilter === 'not_specified' && exp !== 'not specified') return false
+      const expStr = (job.experience_required || "not specified").toLowerCase();
+      
+      if (expFilter === 'not_specified' && expStr !== 'not specified') return false;
+      if (expFilter !== 'not_specified' && expStr === 'not specified') return false;
+
+      const match = expStr.match(/(\d+)/);
+      if (match) {
+        const years = parseInt(match[1], 10);
+        if (expFilter === 'entry' && years > 2) return false;
+        if (expFilter === 'mid' && (years < 3 || years > 5)) return false;
+        if (expFilter === 'senior' && years < 6) return false;
+      } else {
+        if (expFilter !== 'not_specified') return false;
+      }
     }
     return true
   })
