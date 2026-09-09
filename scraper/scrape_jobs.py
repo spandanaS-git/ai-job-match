@@ -105,7 +105,7 @@ def is_usa_job(location_str):
     loc = location_str.lower()
     
     # Exclude explicit international locations
-    exclude_terms = ['canada', 'uk', 'united kingdom', 'india', 'london', 'toronto', 'vancouver', 'berlin', 'germany', 'australia', 'sydney', 'emea', 'apac', 'ireland', 'dublin', 'france', 'paris', 'singapore']
+    exclude_terms = ['canada', 'uk', 'united kingdom', 'india', 'london', 'toronto', 'vancouver', 'berlin', 'germany', 'australia', 'sydney', 'emea', 'apac', 'ireland', 'dublin', 'france', 'paris', 'singapore', 'bangalore', 'bengaluru', 'hyderabad', 'pune', 'chennai', 'mumbai', 'delhi', 'tokyo', 'japan', 'china', 'beijing', 'shanghai', 'hong kong', 'taiwan', 'seoul', 'korea', 'amsterdam', 'netherlands', 'spain', 'madrid', 'barcelona', 'mexico', 'brazil', 'sao paulo', 'argentina', 'colombia', 'chile', 'israel', 'tel aviv', 'sweden', 'stockholm', 'poland', 'warsaw', 'romania', 'bucharest', 'switzerland', 'zurich', 'italy', 'rome', 'milan', 'costa rica', 'manila', 'philippines']
     if any(term in loc for term in exclude_terms):
         return False
         
@@ -133,7 +133,7 @@ def scrape_greenhouse():
             for job in jobs:
                 # Filter ONLY for Data & AI roles
                 title = job.get('title', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision']
+                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                 
@@ -229,7 +229,7 @@ def scrape_workday():
             
             for job in jobs:
                 title = job.get('title', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision']
+                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                     
@@ -304,7 +304,7 @@ def scrape_lever():
             
             for job in jobs:
                 title = job.get('text', '').lower()
-                tech_keywords = ['data', 'machine learning', 'ai ', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision']
+                tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant']
                 if not any(keyword in title for keyword in tech_keywords):
                     continue
                     
@@ -356,6 +356,59 @@ def scrape_lever():
         except Exception as e:
             print(f"  Error processing {company}: {e}")
 
+def scrape_ashby():
+    print("Scraping Ashby boards...")
+    headers = {'content-type': 'application/json'}
+    for board in ASHBY_BOARDS:
+        print(f"Fetching jobs for {board}...")
+        try:
+            body = {
+                'operationName': 'ApiJobBoardWithTeams',
+                'variables': { 'organizationHostedJobsPageName': board },
+                'query': 'query ApiJobBoardWithTeams($organizationHostedJobsPageName: String!) { jobBoard: jobBoardWithTeams(organizationHostedJobsPageName: $organizationHostedJobsPageName) { jobPostings { id title locationName } } }'
+            }
+            res = requests.post('https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobBoardWithTeams', json=body, headers=headers)
+            if res.status_code == 200:
+                data = res.json()
+                if 'data' in data and data['data']['jobBoard'] and 'jobPostings' in data['data']['jobBoard']:
+                    jobs = data['data']['jobBoard']['jobPostings']
+                    inserted = 0
+                    for job in jobs:
+                        title = job.get('title', '').lower()
+                        tech_keywords = ['data', 'machine learning', 'ai', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation']
+                        if not any(keyword in title for keyword in tech_keywords):
+                            continue
+                            
+                        location_str = job.get('locationName', 'Remote')
+                        if not is_usa_job(location_str):
+                            continue
+                            
+                        job_record = {
+                            "title": job.get('title'),
+                            "company": board.capitalize(),
+                            "location": location_str,
+                            "description": "Apply on Ashby",
+                            "url": f"https://jobs.ashbyhq.com/{board}/{job.get('id')}",
+                            "source": "ashby",
+                            "experience_required": "Not Specified",
+                        }
+                        
+                        try:
+                            req_headers = {
+                                "apikey": SUPABASE_KEY,
+                                "Authorization": f"Bearer {SUPABASE_KEY}",
+                                "Content-Type": "application/json",
+                                "Prefer": "return=minimal"
+                            }
+                            insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers=req_headers, json=job_record)
+                            if insert_res.status_code in [200, 201]:
+                                inserted += 1
+                        except Exception as e:
+                            pass
+                    print(f"  Inserted {inserted} new technical jobs for {board}.")
+        except Exception as e:
+            print(f"  Error processing {board}: {e}")
+
 def cleanup_old_jobs():
     print("Cleaning up old jobs to prevent database bloat...")
     try:
@@ -382,5 +435,6 @@ if __name__ == "__main__":
     scrape_greenhouse()
     scrape_workday()
     scrape_lever()
+    scrape_ashby()
     cleanup_old_jobs()
     print("Scraping complete!")
