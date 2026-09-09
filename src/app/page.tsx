@@ -239,7 +239,11 @@ export default function Home() {
                     <tr key={i} className="border-b border-white/5">
                       <td className="px-6 py-4"><div className="h-5 bg-white/5 rounded animate-pulse w-3/4"></div></td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded transition-colors"
+                          onClick={() => setSearchQuery(job.company)}
+                          title={`Click to see all ${job.company} jobs`}
+                        >
                           <div className="w-8 h-8 rounded bg-white/5 animate-pulse"></div>
                           <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
                         </div>
@@ -278,7 +282,11 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded transition-colors"
+                          onClick={() => setSearchQuery(job.company)}
+                          title={`Click to see all ${job.company} jobs`}
+                        >
                           <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center p-1 overflow-hidden shrink-0">
                             <img 
                               src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`} 
