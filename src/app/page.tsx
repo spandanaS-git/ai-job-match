@@ -57,8 +57,18 @@ export default function Home() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  // Remove duplicate jobs based on Title + Company (since location isn't shown)
+  const uniqueJobsMap = new Map();
+  jobs.forEach(job => {
+    const key = ${job.title}-.toLowerCase();
+    if (!uniqueJobsMap.has(key)) {
+      uniqueJobsMap.set(key, job);
+    }
+  });
+  const uniqueJobs = Array.from(uniqueJobsMap.values());
+
   // Apply Experience & Time Filters
-  const filteredJobs = jobs.filter(job => {
+  const filteredJobs = uniqueJobs.filter(job => {
     // 1. Experience Filter
     const expReq = job.experience_required || "Not Specified"
     let expMatch = false
