@@ -1,8 +1,10 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export async function fetchLatestDataJobs() {
+  noStore()
   try {
     // We use the service role key since we removed the authenticated user requirement,
     // and the original RLS policy on the jobs table blocked anonymous users.
