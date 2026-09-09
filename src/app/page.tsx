@@ -241,9 +241,108 @@ export default function Home() {
           </div>
         )}
 
-        {/* Data Table */}
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-          <div className="overflow-x-auto">
+        {/* Mobile Cards View */}
+        <div className="grid grid-cols-1 gap-4 md:hidden mb-8">
+          {loading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-xl p-5 shadow-lg animate-pulse">
+                <div className="flex gap-4 items-start mb-4">
+                  <div className="w-12 h-12 rounded bg-white/5 shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="h-5 bg-white/5 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-white/5 rounded w-1/2"></div>
+                  </div>
+                </div>
+                <div className="h-6 bg-white/5 rounded-full w-24 mb-4"></div>
+                <div className="flex justify-between items-end">
+                  <div className="h-4 bg-white/5 rounded w-16"></div>
+                  <div className="h-8 w-24 rounded-lg bg-white/5"></div>
+                </div>
+              </div>
+            ))
+          ) : currentJobs.length === 0 ? (
+            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-xl p-8 text-center text-slate-500 shadow-lg">
+              No Data/AI jobs found. Try adjusting your filters.
+            </div>
+          ) : (
+            currentJobs.map((job, i) => {
+              const jobDate = job.posted_at || job.created_at;
+              const diffTime = new Date().getTime() - new Date(jobDate).getTime();
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  key={job.id} 
+                  className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-xl p-5 shadow-lg flex flex-col"
+                >
+                  <div className="flex gap-4 items-start mb-3">
+                    <div 
+                      className="w-12 h-12 rounded-md bg-white flex items-center justify-center p-1.5 overflow-hidden shrink-0 cursor-pointer shadow-sm"
+                      onClick={() => setSearchQuery(job.company)}
+                      title={`Click to see all ${job.company} jobs`}
+                    >
+                      <img 
+                        src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`} 
+                        alt={job.company}
+                        className="w-full h-full object-contain"
+                        onError={(e) => { 
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.innerHTML = `<span class="text-sm font-bold text-slate-800">${job.company.charAt(0)}</span>`;
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white text-base leading-tight mb-1">
+                        {job.title}
+                        {diffDays <= 1 && (
+                          <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 align-middle">NEW</span>
+                        )}
+                      </h3>
+                      <div 
+                        className="font-medium text-slate-400 text-sm cursor-pointer hover:text-blue-400 transition-colors inline-block"
+                        onClick={() => setSearchQuery(job.company)}
+                      >
+                        {job.company}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <span className="inline-block px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10 shadow-sm text-slate-300">
+                      {job.experience_required || "Not Specified"}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-auto pt-3 border-t border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-slate-300">
+                        {formatExactDate(job.posted_at || job.created_at)}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {calculateDaysAgo(job.posted_at || job.created_at)}
+                      </span>
+                    </div>
+                    <a 
+                      href={job.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400 font-medium text-sm hover:bg-blue-600 hover:text-white transition-all border border-blue-500/30 shadow-lg"
+                    >
+                      Apply <ExternalLink className="size-3.5" />
+                    </a>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Data Table */}
+        <div className="hidden md:block bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] mb-8">
+<div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-300">
               <thead className="text-xs uppercase bg-white/5 text-slate-400 border-b border-white/10">
                 <tr>
