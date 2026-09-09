@@ -114,7 +114,7 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             className="text-5xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 drop-shadow-sm pb-2"
           >
-            The Best AI & Data Roles
+            Data & AI Roles
           </motion.h1>
 
           <motion.p 
@@ -123,7 +123,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-lg text-slate-400 max-w-2xl"
           >
-            Discover the latest technical roles in Machine Learning, Artificial Intelligence, and Data Science curated for top talent.
+            Discover the latest technical roles in Machine Learning, Artificial Intelligence, and Data Science curated for top talent in the United States.
           </motion.p>
           
           <motion.div 
@@ -146,7 +146,7 @@ export default function Home() {
 
         {/* Quick Filters */}
         <div className="flex flex-wrap gap-2 mb-6 justify-center">
-          {["Machine Learning", "Data Scientist", "Data Engineer", "Intern", "Staff"].map(tag => (
+          {["Analyst", "Data Scientist", "Data Engineer", "Machine Learning", "AI", "Intern"].map(tag => (
             <button
               key={tag}
               onClick={() => { setSearchQuery(tag); setCurrentPage(1); }}
@@ -369,9 +369,23 @@ export default function Home() {
             >
               Previous
             </button>
-            <span className="text-slate-400 text-sm font-medium bg-slate-900/40 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-lg shadow-lg">
-              Page {currentPage} of {totalPages}
-            </span>
+            <div className="flex items-center gap-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-lg shadow-lg">
+              <span className="text-slate-400 text-sm font-medium">Page</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={currentPage}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                    setCurrentPage(val);
+                  }
+                }}
+                className="w-12 bg-white/5 border border-white/10 rounded px-1 py-1 text-center text-slate-200 text-sm focus:outline-none focus:border-blue-500/50 appearance-none"
+              />
+              <span className="text-slate-400 text-sm font-medium">of {totalPages}</span>
+            </div>
             <button 
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
