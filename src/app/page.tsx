@@ -235,14 +235,20 @@ export default function Home() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
-                      <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="size-6 animate-spin text-blue-500" />
-                        Fetching latest roles...
-                      </div>
-                    </td>
-                  </tr>
+                  [...Array(10)].map((_, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      <td className="px-6 py-4"><div className="h-5 bg-white/5 rounded animate-pulse w-3/4"></div></td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-white/5 animate-pulse"></div>
+                          <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4"><div className="h-6 bg-white/5 rounded-full animate-pulse w-24"></div></td>
+                      <td className="px-6 py-4"><div className="h-4 bg-white/5 rounded animate-pulse w-16 ml-auto mt-1"></div></td>
+                      <td className="px-6 py-4"><div className="size-8 rounded-full bg-white/5 animate-pulse mx-auto"></div></td>
+                    </tr>
+                  ))
                 ) : currentJobs.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
@@ -272,7 +278,21 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {job.company}
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-md bg-white flex items-center justify-center p-1 overflow-hidden shrink-0">
+                            <img 
+                              src={`https://logo.clearbit.com/${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`} 
+                              alt={job.company}
+                              className="w-full h-full object-contain"
+                              onError={(e) => { 
+                                // fallback to initial if logo fails
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = `<span class="text-xs font-bold text-slate-800">${job.company.charAt(0)}</span>`;
+                              }}
+                            />
+                          </div>
+                          <span className="font-medium text-slate-200">{job.company}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10">
