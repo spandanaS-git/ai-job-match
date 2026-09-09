@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 'use client'
 
 import { useState, useEffect } from "react"
@@ -133,7 +134,7 @@ export default function Home() {
             className="flex items-center gap-8 mt-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-md shadow-2xl"
           >
             <div className="flex flex-col items-center px-4">
-              <span className="text-white text-3xl font-black tabular-nums">{totalJobsMetric || "..."}</span>
+              <span className="text-white text-3xl font-black tabular-nums">{uniqueJobs.length || "0"}</span>
               <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold mt-1">Active Jobs</span>
             </div>
             <div className="h-12 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
