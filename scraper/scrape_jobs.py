@@ -17,29 +17,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 # A list of top tech companies. The script will automatically skip any that don't use Greenhouse.
 GREENHOUSE_BOARDS = [
-    'pinterest', 'airbnb', 'dropbox', 'figma', 'reddit', 'openai', 'anthropic', 
-    'databricks', 'snowflake', 'stripe', 'block', 'twilio', 'robinhood', 'coinbase', 
-    'doordash', 'uber', 'lyft', 'instacart', 'spotify', 'zillow', 'docusign', 
-    'zoom', 'slack', 'atlassian', 'hubspot', 'servicenow', 'workday', 'paloaltonetworks', 
-    'crowdstrike', 'okta', 'zscaler', 'cloudflare', 'mongodb', 'splunk', 'elastic', 
-    'datadog', 'newrelic', 'appdynamics', 'github', 'gitlab', 'hashicorp', 'pagerduty', 
-    'fastly', 'wayfair', 'peloton', 'roblox', 'discord', 'canva', 'notion', 'asana',
-    'brex', 'plaid', 'fivetran', 'gong', 'outreach', 'braze', 'ramp', 'rippling',
-    'scaleai', 'anduril', 'verkada', 'toast', 'gusto', 'flexport', 'segment', 'confluent',
-    'coursera', 'udemy', 'masterclass', 'skillshare', 'opendoor', 'redfin', 'sofi', 'chime',
-    'betterment', 'wealthfront', 'cashapp', 'squarespace', 'wix', 'godaddy', 'mailchimp',
-    'surveymonkey', 'eventbrite', 'glassdoor', 'yelp', 'tripadvisor', 'expedia', 'kayak',
-    'zocdoc', 'teladoc', '23andme', 'color', 'tempus', 'grail', 'benchling', 'veeva',
-    'flatironhealth', 'oscarhealth', 'lemonade', 'rootinsurance', 'strava', 'whoop', 'oura',
-    'calm', 'headspace', 'minted', 'thumbtack', 'taskrabbit', 'rover', 'postmates', 'caviar',
-    'grubhub', 'seamless', 'blueapron', 'hellofresh', 'sweetgreen', 'cava', 'warbyparker',
-    'allbirds', 'glossier', 'casper', 'away', 'dollarshaveclub', 'renttherunway', 'stitchfix',
-    'thredup', 'poshmark', 'depop', 'stockx', 'goat', 'grailed', 'vinted', 'letgo', 'offerup',
-    'mercari', 'carousell', 'shopee', 'lazada', 'tokopedia', 'bukalapak', 'gojek', 'grab',
-    'traveloka', 'deliveroo', 'justeat', 'foodpanda', 'swiggy', 'zomato', 'talabat', 'careem',
-    'epicgames', 'unity', 'niantic', 'scopely', 'zynga', 'playrix', 'king', 'supercell',
-    'riotgames', 'blizzard', 'electronicarts', 'take2', 'ubisoft', 'squareenix', 'capcom',
-    'sega', 'bandainamco', 'konami', 'nintendo', 'sonyinteractive', 'xbox', 'twitch', 'patreon'
+    'offerup', 'anduril', 'chime', 'redfin', 'epicgames', 'pinecone', 'whoop', 'teladoc', 'glossier', 'selina', 'verkada', 'discord', 'flexport', 'away', 'grubhub', 'ubisoft', 'rippling', 'pagerduty', 'flink', 'oscarhealth', 'opendoor', 'hubspot', 'confluent', 'zipline', 'splunk', 'snapper', 'minted', 'citibike', 'anthropic', 'letgo', 'zapp', 'zoox', 'vrbo', 'pinterest', 'gong', 'benchling', 'vroom', 'scaleai', 'skillshare', 'huggingface', 'peloton', 'postmates', 'swvl', 'kayak', 'synthesia', 'tier', 'twilio', 'roku', 'clarifai', 'c3ai', 'sonyinteractive', 'midjourney', 'langchain', 'wolt', 'grab', 'zynga', 'vacasa', 'playrix', 'block', 'openai', 'instabase', 'mongodb', 'tuio', 'skydio', 'hopper', 'spotify', 'hellofresh', 'weightsandbiases', 'zillow', 'casper', 'okta', 'cashapp', 'carousell', 'notion', 'zocdoc', 'getaround', 'crowdstrike', 'carvana', 'thredup', 'zoom', 'fastly', 'mailchimp', 'sofi', 'sweetgreen', 'tripadvisor', 'seamless', 'aurora', 'dot', 'fivetran', 'shieldai', 'unity', 'eventbrite', 'snowflake', 'shopee', 'blueground', 'glassdoor', 'character', 'waymo', 'gopuff', 'blizzard', 'flatironhealth', 'robinhood', 'databricks', 'inflection', 'hashicorp', 'uber', 'godaddy', 'warbyparker', 'cohere', 'rootinsurance', 'bandainamco', 'runway', 'rover', 'bukalapak', 'shift', 'wayfair', 'asana', 'vinted', 'netflix', 'nuro', 'newrelic', 'perplexity', 'bytedance', 'datarobot', 'lazada', 'talabat', 'gitlab', 'nintendo', 'doordash', 'grail', 'h2o', 'cruise', 'expedia', 'brex', 'dronedeploy', 'deliveroo', 'zomato', 'traveloka', 'swiggy', 'reddit', 'sonder', 'capcom', 'bolt', 'poshmark', 'glovo', 'dropbox', 'braze', 'applovins', 'veeva', 'yelp', 'figma', 'stitchfix', 'stockx', 'compass', 'jasper', 'gusto', 'samsara', 'zipcar', 'toast', 'servicenow', 'cava', 'headspace', 'renttherunway', 'coursera', 'surveymonkey', 'tiktok', 'turo', 'lyft', 'atlassian', 'datadog', 'adept', 'stripe', 'canva', 'careem', 'dollarshaveclub', 'hulu', 'palantir', 'blueapron', 'niantic', 'oura', 'deliveryhero', 'segment', 'color', 'skyscanner', 'elastic', 'cinch', 'supercell', 'ola', 'pony', 'airbnb', 'udemy', 'cloudflare', 'gojek', 'konami', 'paloaltonetworks', 'scopely', 'ironMTN', 'instacart', 'tempus', 'snap', 'spin', 'mercari', 'voi', 'anyscale', 'grailed', 'roblox', 'getir', 'taskrabbit', 'slack', 'descript', 'thumbtack', 'riotgames', 'plaid', 'wix', 'coinbase', 'justeat', 'patreon', 'bird', 'calm', '23andme', 'betterment', 'docusign', 'sega', 'xbox', 'booking', 'blablacar', 'appdynamics', 'wealthfront', 'lime', 'king', 'strava', 'masterclass', 'allbirds', 'electronicarts', 'zscaler', 'jump', 'motivate', 'github', 'take2', 'cazoo', 'caviar', 'foodpanda', 'twitch', 'workday', 'outreach', 'depop', 'squareenix', 'lemonade', 'kuaishou', 'squarespace', 'tokopedia', 'gorillas', 'didi', 'ramp', 'goat'
 ]
 
 # High-profile Workday tenants
@@ -88,14 +66,7 @@ WORKDAY_BOARDS = [
 
 # Startup & Y-Combinator Lever tenants
 LEVER_BOARDS = [
-    'retool', 'zapier', 'yelp', 'quora', 'eventbrite', 'medium', 'hopper', 'substack',
-    'kiva', 'gofundme', 'patreon', 'kickstarter', 'indiegogo', 'coursera', 'udacity',
-    'duolingo', 'babbel', 'rosettestone', 'glossier', 'warbyparker', 'casper', 'peloton',
-    'allbirds', 'away', 'everlane', 'renttherunway', 'stitchfix', 'thredup', 'poshmark',
-    'depop', 'stockx', 'goat', 'grailed', 'vinted', 'letgo', 'offerup', 'mercari',
-    'carousell', 'shopee', 'lazada', 'tokopedia', 'bukalapak', 'gojek', 'grab', 'traveloka',
-    'deliveroo', 'justeat', 'foodpanda', 'swiggy', 'zomato', 'doordash', 'postmates',
-    'grubhub', 'ubereats', 'instacart', 'shipt', 'gopuff', 'gorillas', 'getir', 'flink'
+    'bettyblocks', 'offerup', 'storj', 'bison', 'glossier', 'away', 'trello', 'grubhub', 'docs', 'orbit', 'kickstarter', 'retool', 'roam', 'flink', 'figment', 'mediafire', 'letgo', 'webflow', 'seafile', 'peloton', 'indiegogo', 'postmates', 'bubble', 'obsidian', 'textile', 'wrike', 'logseq', 'grab', 'ocean', 'hopper', 'sendanywhere', 'wetransfer', 'hopr', 'casper', 'carousell', 'maidsafe', 'gun', 'notion', 'monday', 'word', 'keynote', 'thredup', 'lokinet', 'ubereats', 'infura', 'medium', 'i2p', 'invision', 'idx', 'zapier', 'eventbrite', 'shopee', 'pinata', 'gopuff', 'spideroak', 'filecoin', 'mega', 'substack', 'smartsheet', 'box', 'warbyparker', 'alchemy', 'tresorit', 'bukalapak', 'mural', 'asana', 'vinted', 'pages', 'sugar', 'space', 'lazada', 'framer', 'doordash', 'sketch', 'owncloud', 'ipfs', 'orchid', 'zomato', 'deliveroo', 'replit', 'traveloka', 'althea', 'swiggy', 'swarm', 'icloud', 'duolingo', 'outsystems', 'mysterium', 'poshmark', 'kiva', 'dropbox', 'zeplin', 'yelp', 'excel', 'stitchfix', 'stockx', 'figma', 'iawriter', 'appsheet', 'renttherunway', 'coursera', 'jira', 'miro', 'ssb', 'quora', 'drive', 'thread', 'canva', 'ulysses', 'caspio', 'everlane', 'slides', 'blockdaemon', 'quickbase', 'numbers', 'quicknode', 'rosettestone', 'nym', 'evernote', 'quip', 'gojek', 'instacart', 'mendix', 'confluence', 'pcloud', 'fleek', 'streamr', 'mercari', 'dat', 'nextcloud', 'grailed', 'freenet', 'getir', 'bear', 'zeronet', 'airtable', 'patreon', 'justeat', 'sheets', 'resilio', 'sentinel', 'ceramic', 'sync', 'adalo', 'scrivener', 'gofundme', 'arweave', 'sia', 'thunkable', 'allbirds', 'babbel', 'udacity', 'foodpanda', 'syncthing', 'helium', 'pydio', 'depop', 'onedrive', 'gorillas', 'tokopedia', 'shipt', 'glide', 'coda', 'goat'
 ]
 
 def is_usa_job(location_str):
