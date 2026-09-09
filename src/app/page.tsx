@@ -15,7 +15,6 @@ export default function Home() {
   const [expFilter, setExpFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
@@ -27,161 +26,174 @@ export default function Home() {
         if (res.totalJobs) setTotalJobsMetric(res.totalJobs)
         if (res.totalCompanies) setTotalCompaniesMetric(res.totalCompanies)
       } else {
-        setError(res.error)
+        setError(res.error || "Failed to load jobs.")
       }
       setLoading(false)
     }
     loadJobs()
   }, [])
 
-  // Scroll to top when page changes
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [currentPage])
-
-  const calculateDaysAgo = (dateString: string) => {
-    if (!dateString) return "Unknown"
-    const postedDate = new Date(dateString)
-    const today = new Date()
-    const diffTime = today.getTime() - postedDate.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const filteredJobs = jobs.filter(job => {
+    const query = searchQuery.toLowerCase()
+    const titleMatch = (job.title || "").toLowerCase().includes(query)
+    const companyMatch = (job.company || "").toLowerCase().includes(query)
     
-    if (diffDays <= 0) return "Today"
+    if (searchQuery && !titleMatch && !companyMatch) return false
+    
+    if (expFilter !== 'all') {
+      const exp = (job.experience_required || "").toLowerCase()
+      if (expFilter === 'entry' && !exp.includes('0') && !exp.includes('1') && !exp.includes('2')) return false
+      if (expFilter === 'mid' && !exp.includes('3') && !exp.includes('4') && !exp.includes('5')) return false
+      if (expFilter === 'senior' && !exp.includes('6') && !exp.includes('7') && !exp.includes('8') && !exp.includes('9')) return false
+      if (expFilter === 'not_specified' && exp !== 'not specified') return false
+    }
+    return true
+  })
+
+  const uniqueJobsMap = new Map();
+  filteredJobs.forEach(job => {
+    const key = `${job.title}-${job.company}`.toLowerCase();
+    if (!uniqueJobsMap.has(key)) uniqueJobsMap.set(key, job);
+  });
+  const uniqueJobs = Array.from(uniqueJobsMap.values());
+
+  const totalPages = Math.ceil(uniqueJobs.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentJobs = uniqueJobs.slice(startIndex, startIndex + itemsPerPage)
+
+  const formatExactDate = (dateString: string) => {
+    if (!dateString) return ""
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+  
+  const calculateDaysAgo = (dateString: string) => {
+    if (!dateString) return ""
+    const diffTime = new Date().getTime() - new Date(dateString).getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return "Today"
     if (diffDays === 1) return "1 day ago"
     return `${diffDays} days ago`
   }
 
-  const formatExactDate = (dateString: string) => {
-    if (!dateString) return "Unknown Date"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
-
-  // Remove duplicate jobs based on Title + Company (since location isn't shown)
-  const uniqueJobsMap = new Map();
-  jobs.forEach(job => {
-    const key = ${job.title}-.toLowerCase();
-    if (!uniqueJobsMap.has(key)) {
-      uniqueJobsMap.set(key, job);
-    }
-  });
-  const uniqueJobs = Array.from(uniqueJobsMap.values());
-
-  // Apply Experience & Time Filters
-  const filteredJobs = uniqueJobs.filter(job => {
-    // 1. Experience Filter
-    const expReq = job.experience_required || "Not Specified"
-    let expMatch = false
-    
-    if (expFilter === "all") {
-      expMatch = true
-    } else if (expFilter === "not_specified") {
-      expMatch = expReq === "Not Specified"
-    } else {
-      const parsedYears = parseInt(expReq)
-      if (isNaN(parsedYears)) {
-        expMatch = false
-      } else if (expFilter === "entry") {
-        expMatch = parsedYears <= 2
-      } else if (expFilter === "mid") {
-        expMatch = parsedYears >= 3 && parsedYears <= 5
-      } else if (expFilter === "senior") {
-        expMatch = parsedYears >= 6
-      }
-    }
-    
-    if (!expMatch) return false
-    
-    // 2. Search Filter
-    if (searchQuery.trim() !== "") {
-      const query = searchQuery.toLowerCase()
-      const titleMatch = (job.title || "").toLowerCase().includes(query)
-      const companyMatch = (job.company || "").toLowerCase().includes(query)
-      if (!titleMatch && !companyMatch) return false
-    }
-
-    return true
-  })
-
-
-  // Calculate Paginated Jobs
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const currentJobs = filteredJobs.slice(startIndex, startIndex + itemsPerPage)
-
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-100 font-sans selection:bg-blue-500/30">
-      
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30 relative overflow-hidden">
+      {/* Animated Background Mesh */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/40 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-900/30 blur-[120px]" />
+        <div className="absolute top-[20%] right-[20%] w-[30%] h-[30%] rounded-full bg-indigo-900/20 blur-[100px]" />
+      </div>
 
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+        {/* Hero Header */}
+        <div className="flex flex-col items-center justify-center text-center mb-16 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            Live Updates
+          </motion.div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Header and Filter */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div className="text-left">
-            <h1 className="text-3xl font-bold tracking-tight mb-1 text-slate-100">
-              Data / AI Roles
-            </h1>
-            {totalJobsMetric > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <p className="text-sm text-slate-400 font-medium">
-                  Tracking <span className="text-emerald-400 font-semibold">{totalJobsMetric.toLocaleString()}</span> active roles across <span className="text-white font-semibold">{totalCompaniesMetric}+</span> top tech companies
-                </p>
-              </div>
-            )}
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl sm:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 drop-shadow-sm pb-2"
+          >
+            The Best AI & Data Roles
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-slate-400 max-w-2xl"
+          >
+            Discover the latest technical roles in Machine Learning, Artificial Intelligence, and Data Science curated for top talent.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-8 mt-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-md shadow-2xl"
+          >
+            <div className="flex flex-col items-center px-4">
+              <span className="text-white text-3xl font-black tabular-nums">{totalJobsMetric || "..."}</span>
+              <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold mt-1">Active Jobs</span>
+            </div>
+            <div className="h-12 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
+            <div className="flex flex-col items-center px-4">
+              <span className="text-white text-3xl font-black tabular-nums">{totalCompaniesMetric || "..."}</span>
+              <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold mt-1">Companies</span>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Quick Filters */}
+        <div className="flex flex-wrap gap-2 mb-6 justify-center">
+          {["Machine Learning", "Data Scientist", "Data Engineer", "Intern", "Staff"].map(tag => (
+            <button
+              key={tag}
+              onClick={() => { setSearchQuery(tag); setCurrentPage(1); }}
+              className="px-4 py-1.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all shadow-lg"
+            >
+              {tag}
+            </button>
+          ))}
+          <button
+              onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
+              className="px-4 py-1.5 rounded-full text-xs font-medium bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 transition-all shadow-lg"
+            >
+              Clear
+          </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex-1 relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur-md opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 group-focus-within:text-blue-400 transition-colors z-10" />
+            <input 
+              type="text" 
+              placeholder="Search by job title, or click a company logo..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="relative z-10 w-full bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all shadow-xl text-lg"
+            />
           </div>
           
-          <div className="flex flex-col md:flex-row gap-3 md:items-center">
-            {/* Search Bar */}
-            <div className="relative z-40">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search roles, companies..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full sm:w-64 pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-slate-200 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-lg placeholder:text-slate-500"
-              />
-            </div>
-
-            {/* Experience Filter Dropdown */}
-            <div className="relative flex-shrink-0 z-50">
+          <div className="flex gap-4">
+            <div className="relative w-full md:w-56 z-20">
               <button 
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between w-64 px-4 py-3 bg-white/5 border border-white/10 text-slate-200 text-sm rounded-xl hover:bg-white/10 transition-colors shadow-lg"
+                className="w-full h-full bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-4 flex items-center justify-between text-sm text-slate-300 hover:bg-white/10 transition-colors shadow-xl"
               >
-                {
-                  {
-                    'all': 'All Experience Levels',
-                    'entry': 'Entry Level (0-2 years)',
-                    'mid': 'Mid Level (3-5 years)',
-                    'senior': 'Senior Level (6+ years)',
-                    'not_specified': 'Not Specified'
-                  }[expFilter]
-                }
-                <ChevronDown className={`size-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                <span>
+                  {expFilter === 'all' ? 'Experience: All' : 
+                   expFilter === 'entry' ? 'Entry Level' : 
+                   expFilter === 'mid' ? 'Mid Level' : 
+                   expFilter === 'senior' ? 'Senior Level' : 'Not Specified'}
+                </span>
+                <ChevronDown className="size-4 text-slate-500" />
               </button>
               
               {isDropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsDropdownOpen(false)}
-                  ></div>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-full mt-2 w-full bg-[#151515] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 flex flex-col"
+                    className="absolute z-20 top-full mt-2 w-full bg-slate-800 border border-white/10 rounded-xl shadow-2xl py-2 overflow-hidden backdrop-blur-xl"
                   >
                     {[
                       { value: 'all', label: 'All Experience Levels' },
@@ -239,11 +251,7 @@ export default function Home() {
                     <tr key={i} className="border-b border-white/5">
                       <td className="px-6 py-4"><div className="h-5 bg-white/5 rounded animate-pulse w-3/4"></div></td>
                       <td className="px-6 py-4">
-                        <div 
-                          className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded transition-colors"
-                          onClick={() => setSearchQuery(job.company)}
-                          title={`Click to see all ${job.company} jobs`}
-                        >
+                        <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded bg-white/5 animate-pulse"></div>
                           <div className="h-4 bg-white/5 rounded animate-pulse w-24"></div>
                         </div>
@@ -256,7 +264,7 @@ export default function Home() {
                 ) : currentJobs.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-20 text-center text-slate-500">
-                      No Data/AI jobs found in the last 10 days.
+                      No Data/AI jobs found. Try adjusting your filters.
                     </td>
                   </tr>
                 ) : (
@@ -293,7 +301,6 @@ export default function Home() {
                               alt={job.company}
                               className="w-full h-full object-contain"
                               onError={(e) => { 
-                                // fallback to initial if logo fails
                                 e.currentTarget.style.display = 'none';
                                 e.currentTarget.parentElement!.innerHTML = `<span class="text-xs font-bold text-slate-800">${job.company.charAt(0)}</span>`;
                               }}
@@ -303,7 +310,7 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10">
+                        <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10 shadow-sm">
                           {job.experience_required || "Not Specified"}
                         </span>
                       </td>
@@ -322,7 +329,7 @@ export default function Home() {
                           href={job.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center size-8 rounded-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all hover:scale-110 border border-blue-500/30"
+                          className="inline-flex items-center justify-center size-8 rounded-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all hover:scale-110 border border-blue-500/30 shadow-lg"
                         >
                           <ExternalLink className="size-4" />
                         </a>
@@ -334,7 +341,6 @@ export default function Home() {
               </tbody>
             </table>
           </div>
-          
         </div>
         
         {/* Advanced Pagination */}
@@ -343,40 +349,37 @@ export default function Home() {
             <button 
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors flex items-center justify-center"
-              title="First Page"
+              className="px-3 py-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors flex items-center justify-center shadow-lg"
             >
               &laquo;
             </button>
             <button 
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors"
+              className="px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors shadow-lg"
             >
               Previous
             </button>
-            <span className="text-slate-400 text-sm font-medium">
+            <span className="text-slate-400 text-sm font-medium bg-slate-900/40 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-lg shadow-lg">
               Page {currentPage} of {totalPages}
             </span>
             <button 
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors"
+              className="px-4 py-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors shadow-lg"
             >
               Next
             </button>
             <button 
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors flex items-center justify-center"
-              title="Last Page"
+              className="px-3 py-2 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-lg text-slate-300 disabled:opacity-30 hover:bg-white/10 transition-colors flex items-center justify-center shadow-lg"
             >
               &raquo;
             </button>
           </div>
         )}
       </main>
-      
     </div>
   )
 }
