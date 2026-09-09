@@ -303,33 +303,9 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {(() => {
-                          const expRaw = job.experience_required || "Not Specified";
-                          const parts = expRaw.split('|');
-                          const expYears = parts[0].trim();
-                          const techStack = parts.length > 1 && parts[1].trim() !== '' ? parts[1].trim().split(', ') : [];
-                          return (
-                            <div className="flex flex-col gap-2 items-start">
-                              <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap">
-                                {expYears}
-                              </span>
-                              {techStack.length > 0 && (
-                                <div className="flex gap-1 flex-wrap">
-                                  {techStack.slice(0, 3).map(tech => (
-                                    <span key={tech} className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-[10px] border border-blue-500/20 whitespace-nowrap">
-                                      {tech}
-                                    </span>
-                                  ))}
-                                  {techStack.length > 3 && (
-                                    <span className="px-2 py-0.5 bg-white/5 text-slate-400 rounded text-[10px] border border-white/10">
-                                      +{techStack.length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10">
+                          {job.experience_required || "Not Specified"}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">

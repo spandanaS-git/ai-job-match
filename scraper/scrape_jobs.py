@@ -122,19 +122,12 @@ def scrape_greenhouse():
                     
                     # Extract Experience Required using a smarter regex that looks for the word "experience"
                     exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
+                    
+                    # If that fails, fallback to standard years (less accurate)
                     if not exp_match:
                         exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
 
-                    # Extract Tech Stack
-                    POPULAR_TOOLS = ['Python', 'PyTorch', 'TensorFlow', 'SQL', 'AWS', 'GCP', 'Azure', 'Docker', 'Kubernetes', 'Snowflake', 'Databricks', 'Spark', 'Hadoop', 'Kafka', 'React', 'Node.js', 'C++', 'Java', 'Scala', 'Airflow', 'dbt', 'LangChain', 'LlamaIndex', 'HuggingFace', 'FastAPI', 'Rust', 'Go']
-                    found_tools = []
-                    for tool in POPULAR_TOOLS:
-                        pattern = r'(?i)node\.?js' if tool == 'Node.js' else (r'(?i)c\+\+' if tool == 'C++' else r'\b' + re.escape(tool) + r'\b')
-                        if re.search(pattern, clean_text, re.IGNORECASE):
-                            found_tools.append(tool)
-                    if found_tools:
-                        exp_req += " | " + ", ".join(found_tools[:5])
+                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
                     
                     location_str = job.get('location', {}).get('name', 'Remote')
                     if not is_usa_job(location_str):
@@ -228,17 +221,8 @@ def scrape_workday():
                     exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
                     if not exp_match:
                         exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
 
-                    # Extract Tech Stack
-                    POPULAR_TOOLS = ['Python', 'PyTorch', 'TensorFlow', 'SQL', 'AWS', 'GCP', 'Azure', 'Docker', 'Kubernetes', 'Snowflake', 'Databricks', 'Spark', 'Hadoop', 'Kafka', 'React', 'Node.js', 'C++', 'Java', 'Scala', 'Airflow', 'dbt', 'LangChain', 'LlamaIndex', 'HuggingFace', 'FastAPI', 'Rust', 'Go']
-                    found_tools = []
-                    for tool in POPULAR_TOOLS:
-                        pattern = r'(?i)node\.?js' if tool == 'Node.js' else (r'(?i)c\+\+' if tool == 'C++' else r'\b' + re.escape(tool) + r'\b')
-                        if re.search(pattern, clean_text, re.IGNORECASE):
-                            found_tools.append(tool)
-                    if found_tools:
-                        exp_req += " | " + ", ".join(found_tools[:5])
+                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
                     
                     posted_date = job_data.get('jobPostingInfo', {}).get('postedOn', '')
                     # Workday often returns "Posted 3 Days Ago". We let Supabase handle default now() if we can't parse it easily, 
