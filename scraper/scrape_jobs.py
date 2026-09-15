@@ -406,10 +406,186 @@ def cleanup_old_jobs():
     except Exception as e:
         print(f"Error during cleanup: {e}")
 
+
+def scrape_himalayas():
+    print("Scraping Himalayas API...")
+    try:
+        res = requests.get('https://himalayas.app/jobs/api?limit=1000')
+        if res.status_code != 200:
+            print("  Failed to fetch Himalayas API")
+            return
+            
+        data = res.json()
+        jobs = data.get('jobs', [])
+        inserted = 0
+        
+        for job in jobs:
+            title = job.get('title', '').lower()
+            
+            # 1. Strict Tech Filter
+            tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
+            if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
+                continue
+                
+            # 2. Strict USA Filter
+            locations = job.get('locationRestrictions', [])
+            loc_str = ", ".join(locations)
+            if not is_usa_job(loc_str) and loc_str != '':
+                continue
+                
+            # 3. Experience
+            sen = job.get('seniority', [])
+            exp_req = ", ".join(sen) if sen else "Not Specified"
+            
+            # 4. Date
+            pubDate = job.get('pubDate')
+            posted_at = None
+            if pubDate:
+                from datetime import datetime
+                posted_at = datetime.fromtimestamp(pubDate).isoformat()
+                
+            job_record = {
+                "title": job.get('title'),
+                "company": job.get('companyName'),
+                "location": loc_str or "United States (Remote)",
+                "description": job.get('description', '')[:15000],
+                "url": job.get('applicationLink'),
+                "source": "himalayas",
+                "experience_required": exp_req,
+                "posted_at": posted_at
+            }
+            
+            try:
+                headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                }
+                insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers=headers, json=job_record)
+                
+                if insert_res.status_code in [200, 201]:
+                    inserted += 1
+            except Exception as e:
+                pass
+                
+        print(f"  Inserted {inserted} new technical jobs from Himalayas.")
+    except Exception as e:
+        print(f"  Error processing Himalayas: {e}")
+
+
+def scrape_remoteok():
+    print("Scraping RemoteOK API...")
+    try:
+        res = requests.get('https://remoteok.com/api', headers={'User-Agent': 'Mozilla/5.0'})
+        if res.status_code != 200:
+            print("  Failed to fetch RemoteOK API")
+            return
+            
+        jobs = res.json()[1:] # First item is legal info
+        inserted = 0
+        
+        for job in jobs:
+            title = job.get('position', '').lower()
+            
+            tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
+            if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
+                continue
+                
+            loc_str = job.get('location', '')
+            if not is_usa_job(loc_str) and 'worldwide' not in loc_str.lower() and loc_str != '':
+                continue
+                
+            posted_at = job.get('date')
+            
+            job_record = {
+                "title": job.get('position'),
+                "company": job.get('company'),
+                "location": loc_str or "United States (Remote)",
+                "description": job.get('description', '')[:15000],
+                "url": job.get('url'),
+                "source": "remoteok",
+                "experience_required": "Not Specified",
+                "posted_at": posted_at
+            }
+            
+            try:
+                headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                }
+                insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers=headers, json=job_record)
+                if insert_res.status_code in [200, 201]:
+                    inserted += 1
+            except Exception as e:
+                pass
+                
+        print(f"  Inserted {inserted} new technical jobs from RemoteOK.")
+    except Exception as e:
+        print(f"  Error processing RemoteOK: {e}")
+
+def scrape_arbeitnow():
+    print("Scraping Arbeitnow API...")
+    try:
+        res = requests.get('https://www.arbeitnow.com/api/job-board-api')
+        if res.status_code != 200:
+            print("  Failed to fetch Arbeitnow API")
+            return
+            
+        jobs = res.json().get('data', [])
+        inserted = 0
+        
+        for job in jobs:
+            title = job.get('title', '').lower()
+            
+            tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
+            if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
+                continue
+                
+            loc_str = job.get('location', '')
+            if not is_usa_job(loc_str) and not job.get('remote', False) and loc_str != '':
+                continue
+                
+            from datetime import datetime
+            posted_at = datetime.fromtimestamp(job.get('created_at')).isoformat() if job.get('created_at') else None
+            
+            job_record = {
+                "title": job.get('title'),
+                "company": job.get('company_name'),
+                "location": loc_str or "United States (Remote)",
+                "description": job.get('description', '')[:15000],
+                "url": job.get('url'),
+                "source": "arbeitnow",
+                "experience_required": "Not Specified",
+                "posted_at": posted_at
+            }
+            
+            try:
+                headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                }
+                insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers=headers, json=job_record)
+                if insert_res.status_code in [200, 201]:
+                    inserted += 1
+            except Exception as e:
+                pass
+                
+        print(f"  Inserted {inserted} new technical jobs from Arbeitnow.")
+    except Exception as e:
+        print(f"  Error processing Arbeitnow: {e}")
+
 if __name__ == "__main__":
     scrape_greenhouse()
     scrape_workday()
     scrape_lever()
     scrape_ashby()
+    scrape_himalayas()
+    scrape_remoteok()
+    scrape_arbeitnow()
     cleanup_old_jobs()
     print("Scraping complete!")
