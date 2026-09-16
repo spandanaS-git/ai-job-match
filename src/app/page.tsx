@@ -598,16 +598,14 @@ export default function Home() {
                   <span>{selectedJob?.title} @ {selectedJob?.company}</span>
                 </p>
                 
-                {selectedJob?.description && (
-                  <details className="mt-3 group">
-                    <summary className="text-xs text-indigo-400 cursor-pointer hover:text-indigo-300 font-medium select-none flex items-center gap-1">
-                      View Job Description
-                    </summary>
-                    <div className="mt-2 p-3 bg-white/5 rounded-lg border border-white/10 max-h-40 overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap">
-                      {selectedJob.description}
-                    </div>
-                  </details>
-                )}
+                                  <a 
+                    href={selectedJob?.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 px-3 py-1.5 rounded-md border border-indigo-500/20 w-fit"
+                  >
+                    Read Full Job Description <ExternalLink className="size-3" />
+                  </a>
               </div>
 
               {!matchResult && !isAnalyzing && (
