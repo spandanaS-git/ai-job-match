@@ -30,7 +30,7 @@ export async function fetchLatestDataJobs() {
     while (hasMore) {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id, title, company, experience_required, url, created_at, posted_at')
+        .select('id, title, company, experience_required, url, created_at, posted_at, description')
         .gte('posted_at', cutoffDate.toISOString())
         .order('posted_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1)
