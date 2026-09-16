@@ -412,7 +412,7 @@ export default function Home() {
                   <th scope="col" className="px-6 py-4 font-semibold">Company</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Experience Req</th>
                   <th scope="col" className="px-6 py-4 font-semibold text-right">Posted</th>
-                  <th scope="col" className="px-6 py-4 font-semibold text-center">Apply</th>
+                  <th scope="col" className="px-6 py-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>

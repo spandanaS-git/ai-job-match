@@ -4,6 +4,18 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import re
 
+def is_us_job(location):
+    if not location:
+        return True
+    loc = str(location).lower()
+    non_us_keywords = ['uk', 'united kingdom', 'london', 'india', 'bangalore', 'germany', 'berlin', 'munich', 'france', 'paris', 'canada', 'toronto', 'vancouver', 'australia', 'sydney', 'europe', 'emea', 'apac', 'latam', 'brazil', 'singapore', 'ireland', 'dublin', 'netherlands', 'amsterdam', 'spain', 'madrid', 'barcelona']
+    for keyword in non_us_keywords:
+        if re.search(r'' + keyword + r'', loc):
+            if not ('us' in loc.split() or 'united states' in loc or 'america' in loc or 'new york' in loc or 'california' in loc or 'remote - us' in loc or 'remote (us)' in loc):
+                return False
+    return True
+
+
 # Load environment variables from the Next.js .env.local file
 load_dotenv(dotenv_path='../.env.local')
 
@@ -526,58 +538,6 @@ def scrape_remoteok():
     except Exception as e:
         print(f"  Error processing RemoteOK: {e}")
 
-def scrape_arbeitnow():
-    print("Scraping Arbeitnow API...")
-    try:
-        res = requests.get('https://www.arbeitnow.com/api/job-board-api')
-        if res.status_code != 200:
-            print("  Failed to fetch Arbeitnow API")
-            return
-            
-        jobs = res.json().get('data', [])
-        inserted = 0
-        
-        for job in jobs:
-            title = job.get('title', '').lower()
-            
-            tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
-            if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
-                continue
-                
-            loc_str = job.get('location', '')
-            if not is_usa_job(loc_str) and not job.get('remote', False) and loc_str != '':
-                continue
-                
-            from datetime import datetime
-            posted_at = datetime.fromtimestamp(job.get('created_at')).isoformat() if job.get('created_at') else None
-            
-            job_record = {
-                "title": job.get('title'),
-                "company": job.get('company_name'),
-                "location": loc_str or "United States (Remote)",
-                "description": job.get('description', '')[:15000],
-                "url": job.get('url'),
-                "source": "arbeitnow",
-                "experience_required": "Not Specified",
-                "posted_at": posted_at
-            }
-            
-            try:
-                headers = {
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_KEY}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal"
-                }
-                insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers=headers, json=job_record)
-                if insert_res.status_code in [200, 201]:
-                    inserted += 1
-            except Exception as e:
-                pass
-                
-        print(f"  Inserted {inserted} new technical jobs from Arbeitnow.")
-    except Exception as e:
-        print(f"  Error processing Arbeitnow: {e}")
 
 if __name__ == "__main__":
     scrape_greenhouse()
@@ -586,6 +546,5 @@ if __name__ == "__main__":
     scrape_ashby()
     scrape_himalayas()
     scrape_remoteok()
-    scrape_arbeitnow()
     cleanup_old_jobs()
     print("Scraping complete!")
