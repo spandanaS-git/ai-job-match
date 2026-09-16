@@ -15,9 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing resumeText or jobDescription" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-
-    const prompt = `
+const prompt = `
       You are an expert technical recruiter and ATS (Applicant Tracking System) algorithm.
       Compare the following Resume to the Job Description.
 
@@ -37,8 +35,32 @@ export async function POST(req: Request) {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const modelsToTry = [
+      "gemini-flash-lite-latest", // Fastest and lightest, least likely to be overloaded
+      "gemini-3.5-flash",
+      "gemini-2.5-flash", 
+      "gemini-flash-latest"
+    ];
+
+    let responseText = "";
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        break; // Successfully got a response, break out of loop
+      } catch (err: any) {
+        console.warn(`Model ${modelName} failed:`, err.message);
+        lastError = err;
+        // Continue to the next model in the fallback array
+      }
+    }
+
+    if (!responseText) {
+      throw lastError || new Error("All Google AI servers are currently overloaded. Please try again in 1 minute.");
+    }
     
     // Clean up potential markdown from the response
     const cleanJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
