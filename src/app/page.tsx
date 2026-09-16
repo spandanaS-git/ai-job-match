@@ -3,7 +3,9 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2, Search } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle } from "lucide-react"
+import * as pdfjsLib from "pdfjs-dist";
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
