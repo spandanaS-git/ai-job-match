@@ -498,7 +498,7 @@ export default function Home() {
                         <div className="flex items-center justify-center gap-2">
                           <button 
                             onClick={() => { setSelectedJob(job); setIsMatchModalOpen(true); setMatchResult(null); setResumeText(""); }}
-                            title="AI Resume Match"
+                            title="Check Score"
                             className="inline-flex items-center justify-center size-8 rounded-full bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all hover:scale-110 border border-indigo-500/30 shadow-lg"
                           >
                             <Sparkles className="size-4" />
@@ -584,7 +584,7 @@ export default function Home() {
           >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Sparkles className="size-5 text-indigo-400" /> AI Resume Matcher
+                <Sparkles className="size-5 text-indigo-400" /> Check Score
               </h3>
               <button onClick={() => setIsMatchModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X className="size-5" />
@@ -594,7 +594,20 @@ export default function Home() {
             <div className="p-6 flex flex-col gap-6">
               <div>
                 <p className="text-sm text-slate-400">Target Role</p>
-                <p className="text-white font-medium">{selectedJob?.title} @ {selectedJob?.company}</p>
+                <p className="text-white font-medium flex justify-between items-center">
+                  <span>{selectedJob?.title} @ {selectedJob?.company}</span>
+                </p>
+                
+                {selectedJob?.description && (
+                  <details className="mt-3 group">
+                    <summary className="text-xs text-indigo-400 cursor-pointer hover:text-indigo-300 font-medium select-none flex items-center gap-1">
+                      View Job Description
+                    </summary>
+                    <div className="mt-2 p-3 bg-white/5 rounded-lg border border-white/10 max-h-40 overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap">
+                      {selectedJob.description}
+                    </div>
+                  </details>
+                )}
               </div>
 
               {!matchResult && !isAnalyzing && (
