@@ -16,7 +16,66 @@ export default function Home() {
   const [expFilter, setExpFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   
+  
   const [currentPage, setCurrentPage] = useState(1)
+  
+  // AI Matcher State
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<any>(null)
+  const [resumeText, setResumeText] = useState("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [matchResult, setMatchResult] = useState<any>(null)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.type === "application/pdf") {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(" ");
+          fullText += pageText + " ";
+        }
+        setResumeText(fullText);
+      } catch (err) {
+        console.error("PDF Parsing Error", err);
+        alert("Failed to parse PDF. Please try a different file.");
+      }
+    } else {
+      // Text or other formats
+      const text = await file.text();
+      setResumeText(text);
+    }
+  };
+
+  const analyzeMatch = async () => {
+    if (!resumeText || !selectedJob) return;
+    setIsAnalyzing(true);
+    setMatchResult(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText: resumeText,
+          jobDescription: selectedJob.description || selectedJob.title
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setMatchResult(data);
+    } catch (err: any) {
+      alert("Analysis failed: " + err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const itemsPerPage = 20
 
   useEffect(() => {
@@ -434,14 +493,23 @@ export default function Home() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <a 
-                          href={job.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center size-8 rounded-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all hover:scale-110 border border-blue-500/30 shadow-lg"
-                        >
-                          <ExternalLink className="size-4" />
-                        </a>
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => { setSelectedJob(job); setIsMatchModalOpen(true); setMatchResult(null); setResumeText(""); }}
+                            title="AI Resume Match"
+                            className="inline-flex items-center justify-center size-8 rounded-full bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all hover:scale-110 border border-indigo-500/30 shadow-lg"
+                          >
+                            <Sparkles className="size-4" />
+                          </button>
+                          <a 
+                            href={job.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center size-8 rounded-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all hover:scale-110 border border-blue-500/30 shadow-lg"
+                          >
+                            <ExternalLink className="size-4" />
+                          </a>
+                        </div>
                       </td>
                     </motion.tr>
                   )
@@ -503,6 +571,112 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* AI Match Modal */}
+      {isMatchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col"
+          >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="size-5 text-indigo-400" /> AI Resume Matcher
+              </h3>
+              <button onClick={() => setIsMatchModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <X className="size-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-6">
+              <div>
+                <p className="text-sm text-slate-400">Target Role</p>
+                <p className="text-white font-medium">{selectedJob?.title} @ {selectedJob?.company}</p>
+              </div>
+
+              {!matchResult && !isAnalyzing && (
+                <div className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-white/[0.01] hover:bg-white/[0.03] transition-colors relative">
+                  <input 
+                    type="file" 
+                    accept=".pdf,.txt" 
+                    onChange={handleFileUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <FileText className="size-10 text-slate-500 mb-3" />
+                  <p className="text-slate-300 font-medium mb-1">
+                    {resumeText ? "Resume loaded successfully!" : "Drop your resume here or click to browse"}
+                  </p>
+                  <p className="text-xs text-slate-500">Supports PDF & TXT (Max 5MB)</p>
+                </div>
+              )}
+
+              {isAnalyzing && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="size-12 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin mb-4"></div>
+                  <p className="text-indigo-400 font-medium animate-pulse">Our AI is reading your resume...</p>
+                </div>
+              )}
+
+              {matchResult && (
+                <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
+                  <div className="relative size-32 flex items-center justify-center">
+                    <svg className="absolute inset-0 size-full -rotate-90">
+                      <circle cx="64" cy="64" r="56" className="fill-none stroke-white/10 stroke-[8]" />
+                      <circle 
+                        cx="64" cy="64" r="56" 
+                        className={`fill-none stroke-[8] stroke-linecap-round transition-all duration-1000 ${matchResult.score > 85 ? 'stroke-emerald-500' : matchResult.score > 65 ? 'stroke-amber-500' : 'stroke-red-500'}`}
+                        strokeDasharray="351.8"
+                        strokeDashoffset={351.8 - (351.8 * matchResult.score) / 100}
+                      />
+                    </svg>
+                    <div className="flex flex-col items-center">
+                      <span className="text-3xl font-black text-white">{matchResult.score}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 ${matchResult.score > 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {matchResult.score > 85 ? <CheckCircle className="size-4" /> : <AlertCircle className="size-4" />}
+                    {matchResult.status}
+                  </div>
+
+                  {matchResult.missingKeywords && matchResult.missingKeywords.length > 0 && (
+                    <div className="w-full bg-white/5 rounded-xl p-4 border border-white/10">
+                      <p className="text-sm font-medium text-slate-300 mb-3">Critical Missing Keywords:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {matchResult.missingKeywords.map((kw: string, i: number) => (
+                          <span key={i} className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-xs font-medium">
+                            + {kw}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-3">Add these keywords to your resume to beat the ATS filter.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
+              <button 
+                onClick={() => setIsMatchModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Close
+              </button>
+              {!matchResult && !isAnalyzing && (
+                <button 
+                  onClick={analyzeMatch}
+                  disabled={!resumeText}
+                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Sparkles className="size-4" /> Analyze
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
