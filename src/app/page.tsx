@@ -772,6 +772,112 @@ export default function Home() {
           </motion.div>
         </div>
       )}
+      {/* Add Job Modal */}
+      {isAddJobModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddJobModalOpen(false)}></div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10"
+          >
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Plus className="size-5 text-blue-400" /> Add Job Manually
+              </h3>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {addJobError && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm flex items-start gap-2">
+                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
+                  <p>{addJobError}</p>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Job URL *</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="url" 
+                    placeholder="https://..." 
+                    value={addJobUrl}
+                    onChange={(e) => setAddJobUrl(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                  <button 
+                    onClick={verifyJobUrl}
+                    disabled={!addJobUrl || isVerifyingJob}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {isVerifyingJob ? 'Verifying...' : 'Auto-fill'}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Job Title *</label>
+                <input 
+                  type="text" 
+                  value={addJobTitle}
+                  onChange={(e) => setAddJobTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Company *</label>
+                <input 
+                  type="text" 
+                  value={addJobCompany}
+                  onChange={(e) => setAddJobCompany(e.target.value)}
+                  className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Experience Level</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 5+ years, Senior" 
+                    value={addJobExp}
+                    onChange={(e) => setAddJobExp(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Location</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Remote, New York" 
+                    value={addJobLocation}
+                    onChange={(e) => setAddJobLocation(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
+              <button 
+                onClick={() => setIsAddJobModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveManualJob}
+                disabled={isSavingJob || !addJobUrl || !addJobTitle || !addJobCompany}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSavingJob ? 'Saving...' : 'Save Job'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
+
