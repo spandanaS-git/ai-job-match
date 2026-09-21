@@ -29,12 +29,11 @@ export async function POST(req: Request) {
       Do not include any conversational text before or after the resume. Output ONLY the markdown resume.
     `;
 
-    const modelsToTry = [
-      "gemini-1.5-pro",
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-latest",
-      "gemini-pro"
+        const modelsToTry = [
+      "gemini-2.5-pro",
+      "gemini-3.5-flash",
+      "gemini-pro-latest",
+      "gemini-flash-latest"
     ];
     
     let optimizedText = "";
