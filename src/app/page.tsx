@@ -753,10 +753,10 @@ export default function Home() {
       {isMatchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col"
-          >
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`bg-slate-900 border border-white/10 rounded-2xl shadow-2xl transition-all duration-500 overflow-hidden flex flex-col ${showOptimizer ? "max-w-[95vw] w-full h-[90vh]" : "max-w-lg w-full max-h-[90vh]"}`}
+            >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-5 text-indigo-400" /> Check Score
