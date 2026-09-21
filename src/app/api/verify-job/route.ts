@@ -49,8 +49,15 @@ export async function POST(req: Request) {
           company = parts.length > 1 ? parts[1].trim() : ''
         } else if (pageTitle.includes(' - ')) {
           const parts = pageTitle.split(' - ')
-          title = parts[0].trim()
-          company = parts.length > 1 ? parts[1].trim() : ''
+          if (url.includes('paylocity.com')) {
+            // Paylocity puts Company Name before Job Title
+            company = parts[0].trim()
+            title = parts.length > 1 ? parts[1].trim() : ''
+          } else {
+            // Default assumes Job Title before Company
+            title = parts[0].trim()
+            company = parts.length > 1 ? parts[1].trim() : ''
+          }
         } else {
           title = pageTitle
         }
