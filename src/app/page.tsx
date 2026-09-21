@@ -22,6 +22,7 @@ export default function Home() {
   const [addJobCompany, setAddJobCompany] = useState('')
   const [addJobExp, setAddJobExp] = useState('')
   const [addJobLocation, setAddJobLocation] = useState('Remote')
+  const [addJobPostedDate, setAddJobPostedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [isVerifyingJob, setIsVerifyingJob] = useState(false)
   const [isSavingJob, setIsSavingJob] = useState(false)
   const [addJobError, setAddJobError] = useState('')
@@ -107,7 +108,8 @@ export default function Home() {
           title: addJobTitle,
           company: addJobCompany,
           experience_required: addJobExp,
-          location: addJobLocation
+          location: addJobLocation,
+          posted_at: addJobPostedDate
         })
       })
       const data = await res.json()
@@ -835,7 +837,7 @@ export default function Home() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">Experience Level</label>
                   <input 
@@ -853,6 +855,15 @@ export default function Home() {
                     placeholder="e.g. Remote, New York" 
                     value={addJobLocation}
                     onChange={(e) => setAddJobLocation(e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Posted Date</label>
+                  <input 
+                    type="date" 
+                    value={addJobPostedDate}
+                    onChange={(e) => setAddJobPostedDate(e.target.value)}
                     className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
                   />
                 </div>

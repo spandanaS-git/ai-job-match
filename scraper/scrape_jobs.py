@@ -98,6 +98,25 @@ def is_usa_job(location_str):
     # If we have an include term, or if it doesn't have an exclude term, we err on the side of keeping it
     return True
 
+
+def fetch_dynamic_companies():
+    # Fetch manual jobs to discover new company slugs for greenhouse and lever
+    try:
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/jobs?source=eq.manual&select=url", headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'})
+        if res.status_code == 200:
+            for job in res.json():
+                url = job.get('url', '')
+                if 'boards.greenhouse.io' in url:
+                    slug = url.split('boards.greenhouse.io/')[1].split('/')[0]
+                    if slug and slug not in GREENHOUSE_BOARDS:
+                        GREENHOUSE_BOARDS.append(slug)
+                elif 'jobs.lever.co' in url:
+                    slug = url.split('jobs.lever.co/')[1].split('/')[0]
+                    if slug and slug not in LEVER_BOARDS:
+                        LEVER_BOARDS.append(slug)
+    except Exception as e:
+        print("Error fetching dynamic companies:", e)
+
 def scrape_greenhouse():
     print("Scraping Greenhouse boards...")
     for company in GREENHOUSE_BOARDS:
@@ -763,6 +782,7 @@ def scrape_remoteok():
 
 
 if __name__ == "__main__":
+    fetch_dynamic_companies()
     scrape_greenhouse()
     scrape_workday()
     scrape_lever()

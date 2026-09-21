@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { title, company, url, experience_required, location } = body
+    const { title, company, url, experience_required, location, posted_at } = body
 
     if (!title || !company || !url) {
       return NextResponse.json({ error: 'Title, company, and URL are required' }, { status: 400 })
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
           location: location || 'Remote',
           source: 'manual',
           created_at: new Date().toISOString(),
-          posted_at: new Date().toISOString()
+          posted_at: posted_at ? new Date(posted_at).toISOString() : new Date().toISOString()
         }
       ])
       .select()
