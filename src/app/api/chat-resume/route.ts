@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       Output ONLY valid JSON. Do NOT wrap it in \`\`\`json markdown blocks.
     `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     const result = await model.generateContent(prompt);
     
     let responseText = result.response.text();
