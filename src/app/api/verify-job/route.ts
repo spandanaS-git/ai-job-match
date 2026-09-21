@@ -1,12 +1,30 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function POST(req: Request) {
   try {
     const { url } = await req.json()
     if (!url) return NextResponse.json({ error: 'URL is required' }, { status: 400 })
 
+    // 1. Check if job already exists in DB based on base URL (strip query params)
+    const baseUrl = url.split('?')[0]
+    const { data: existing } = await supabase
+      .from('jobs')
+      .select('id')
+      .filter('url', 'ilike', `${baseUrl}%`)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: 'Job already exists in your feed!' }, { status: 400 })
+    }
+
     let title = ''
     let company = ''
+    let experience = ''
 
     try {
       const response = await fetch(url, {
@@ -36,6 +54,12 @@ export async function POST(req: Request) {
           title = pageTitle
         }
         title = title.replace(/Job Application for /ig, '').replace(/Careers/ig, '').trim()
+
+        // Extract experience from HTML body
+        const expMatch = html.match(/(\d+)\+?\s*years?[^\.]{0,40}?experience/i) || html.match(/(\d+)\+?\s*years?/i)
+        if (expMatch) {
+          experience = `${expMatch[1]}+ years`
+        }
       }
     } catch (e) {
       // Ignore fetch errors, fallback to URL parsing
@@ -47,21 +71,15 @@ export async function POST(req: Request) {
         const urlObj = new URL(url)
         const pathParts = urlObj.pathname.split('/').filter(Boolean)
         
-        // himalayas.app/companies/nttdata/jobs/data-engineer
         if (urlObj.hostname.includes('himalayas.app') && pathParts.includes('companies') && pathParts.includes('jobs')) {
           company = pathParts[pathParts.indexOf('companies') + 1] || company
           title = pathParts[pathParts.indexOf('jobs') + 1] || title
-        } 
-        // boards.greenhouse.io/spacex/jobs/12345
-        else if (urlObj.hostname.includes('greenhouse.io')) {
+        } else if (urlObj.hostname.includes('greenhouse.io')) {
           company = pathParts[0] || company
-        }
-        // jobs.lever.co/stripe/12345
-        else if (urlObj.hostname.includes('lever.co')) {
+        } else if (urlObj.hostname.includes('lever.co')) {
           company = pathParts[0] || company
         }
         
-        // Clean up URL-based strings (e.g. data-engineer -> Data Engineer)
         if (title && title === title.toLowerCase()) {
           title = title.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
         }
@@ -72,12 +90,26 @@ export async function POST(req: Request) {
         // Ignore URL parsing errors
       }
     }
+
+    // Fallback experience extraction from title
+    if (!experience && title) {
+      const tLower = title.toLowerCase()
+      if (['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief'].some(k => tLower.includes(k))) {
+        experience = 'Senior'
+      } else if (['mid', 'intermediate'].some(k => tLower.includes(k))) {
+        experience = 'Mid-level'
+      } else if (['junior', 'jr', 'entry', 'intern', 'grad'].some(k => tLower.includes(k))) {
+        experience = 'Entry Level'
+      } else {
+        experience = 'Not Specified'
+      }
+    }
     
     if (!title && !company) {
       return NextResponse.json({ error: `Could not parse automatically. Please fill manually.` }, { status: 400 })
     }
 
-    return NextResponse.json({ title, company })
+    return NextResponse.json({ title, company, experience })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
