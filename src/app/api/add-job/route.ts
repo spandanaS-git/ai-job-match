@@ -14,6 +14,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Title, company, and URL are required' }, { status: 400 })
     }
 
+    // Check if job already exists
+    const { data: existing } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('url', url)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ error: 'Job already exists' }, { status: 400 })
+    }
+
     const { data, error } = await supabase
       .from('jobs')
       .insert([
