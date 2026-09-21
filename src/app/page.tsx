@@ -41,6 +41,88 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
 
+    // AI Optimizer State
+    const [isOptimizing, setIsOptimizing] = useState(false)
+    const [optimizedResume, setOptimizedResume] = useState('')
+    const [chatHistory, setChatHistory] = useState<any[]>([])
+    const [chatInput, setChatInput] = useState('')
+    const [isChatting, setIsChatting] = useState(false)
+    const [showOptimizer, setShowOptimizer] = useState(false)
+    const resumeRef = useRef<HTMLDivElement>(null)
+
+    const handleOptimizeResume = async () => {
+      setIsOptimizing(true)
+      setShowOptimizer(true)
+      try {
+        const res = await fetch('/api/optimize-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeText,
+            jobDescription: selectedJob?.description,
+            missingKeywords: matchResult?.missingKeywords || []
+          })
+        })
+        const data = await res.json()
+        if (data.optimizedResume) {
+          setOptimizedResume(data.optimizedResume)
+          setChatHistory([{ role: 'AI', content: "I've rewritten your resume to include the missing keywords perfectly! How does it look? Let me know if you want to make any further changes." }])
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsOptimizing(false)
+      }
+    }
+
+    const handleChatSubmit = async (e: any) => {
+      e.preventDefault()
+      if (!chatInput.trim()) return
+      
+      const newMsg = { role: 'User', content: chatInput }
+      setChatHistory(prev => [...prev, newMsg])
+      setChatInput('')
+      setIsChatting(true)
+      
+      try {
+        const res = await fetch('/api/chat-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            optimizedResume,
+            chatHistory: chatHistory,
+            userMessage: newMsg.content
+          })
+        })
+        const data = await res.json()
+        if (data.resume) {
+          setOptimizedResume(data.resume)
+        }
+        if (data.message) {
+          setChatHistory(prev => [...prev, { role: 'AI', content: data.message }])
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsChatting(false)
+      }
+    }
+
+    const downloadPDF = async () => {
+      if (typeof window !== 'undefined' && resumeRef.current) {
+        const html2pdf = (await import('html2pdf.js')).default;
+        const opt = {
+          margin: 1,
+          filename: 'Optimized_Resume.pdf',
+          image: { type: 'jpeg' as const, quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(resumeRef.current).save();
+      }
+    }
+
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
