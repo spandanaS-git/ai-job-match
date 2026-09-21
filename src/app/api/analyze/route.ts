@@ -1,3 +1,4 @@
+import { getBestAvailableModel } from '@/lib/gemini';
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 

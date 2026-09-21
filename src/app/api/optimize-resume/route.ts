@@ -1,3 +1,4 @@
+import { getBestAvailableModel } from '@/lib/gemini';
 export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -29,31 +30,10 @@ export async function POST(req: Request) {
       Do not include any conversational text before or after the resume. Output ONLY the markdown resume.
     `;
 
-        const modelsToTry = [
-      "gemini-2.5-pro",
-      "gemini-3.5-flash",
-      "gemini-pro-latest",
-      "gemini-flash-latest"
-    ];
-    
-    let optimizedText = "";
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
-        optimizedText = result.response.text();
-        break;
-      } catch (err) {
-        lastError = err;
-        console.log(`Failed with model ${modelName}`, err);
-      }
-    }
-
-    if (!optimizedText) {
-      throw lastError || new Error("All fallback models failed.");
-    }
+        const modelName = await getBestAvailableModel();
+    const model = genAI.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent(prompt);
+    let optimizedText = result.response.text();
     // Strip markdown wrappers if the model wrapped it in ```markdown
     if (optimizedText.startsWith('```markdown')) {
       optimizedText = optimizedText.replace(/```markdown\n/, '').replace(/```$/, '');
