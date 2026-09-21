@@ -82,7 +82,14 @@ export default function Home() {
       const data = await res.json()
       if (res.ok) {
         if (data.title) setAddJobTitle(data.title)
-        if (data.company) setAddJobCompany(data.company)\n        if (data.experience) setAddJobExp(data.experience)
+        if (data.company) setAddJobCompany(data.company)
+                if (data.experience) setAddJobExp(data.experience)
+        if (data.postedDate) {
+          const d = new Date(data.postedDate)
+          if (!isNaN(d.getTime())) {
+            setAddJobPostedDate(d.toISOString().split('T')[0])
+          }
+        }
       } else {
         setAddJobError(data.error || 'Failed to auto-fill. Please enter manually.')
       }

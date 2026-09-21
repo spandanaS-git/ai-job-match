@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     let title = ''
     let company = ''
     let experience = ''
+    let postedDate = ''
 
     try {
       const response = await fetch(url, {
@@ -59,6 +60,15 @@ export async function POST(req: Request) {
         const expMatch = html.match(/(\d+)\+?\s*years?[^\.]{0,40}?experience/i) || html.match(/(\d+)\+?\s*years?/i)
         if (expMatch) {
           experience = `${expMatch[1]}+ years`
+        }
+        
+        // Extract posted date from structured data or meta tags
+        const dateMatch = html.match(/"datePosted"\s*:\s*"([^"]+)"/i) || 
+                          html.match(/<meta[^>]*property="article:published_time"[^>]*content="([^"]+)"/i) ||
+                          html.match(/<time[^>]*datetime="([^"]+)"/i) ||
+                          html.match(/"postedAt"\s*:\s*"([^"]+)"/i)
+        if (dateMatch && dateMatch[1]) {
+          postedDate = dateMatch[1]
         }
       }
     } catch (e) {
@@ -109,7 +119,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Could not parse automatically. Please fill manually.` }, { status: 400 })
     }
 
-    return NextResponse.json({ title, company, experience })
+    return NextResponse.json({ title, company, experience, postedDate })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
