@@ -66,7 +66,8 @@ export default function Home() {
           })
         })
         const data = await res.json()
-        if (data.optimizedResume) {
+        if (!res.ok || data.error) { alert("AI Error: " + (data.error || "Unknown error")); return; }
+          if (data.optimizedResume) {
           setOptimizedResume(data.optimizedResume)
           setChatHistory([{ role: 'AI', content: "I've rewritten your resume to include the missing keywords perfectly! How does it look? Let me know if you want to make any further changes." }])
         }
@@ -97,7 +98,8 @@ export default function Home() {
           })
         })
         const data = await res.json()
-        if (data.resume) {
+        if (!res.ok || data.error) { alert("Chat Error: " + (data.error || "Unknown error")); return; }
+          if (data.resume) {
           setOptimizedResume(data.resume)
         }
         if (data.message) {
