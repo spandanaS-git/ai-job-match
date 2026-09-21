@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     })
     
     if (!response.ok) {
-      return NextResponse.json({ error: Failed to fetch URL. Status:  }, { status: 400 })
+      return NextResponse.json({ error: `Failed to fetch URL. Status: ${response.status}` }, { status: 400 })
     }
 
     const html = await response.text()
