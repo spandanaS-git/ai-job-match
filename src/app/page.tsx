@@ -114,8 +114,10 @@ export default function Home() {
         if (expFilter === 'entry' && years > 2) return false;
         if (expFilter === 'mid' && (years < 3 || years > 5)) return false;
         if (expFilter === 'senior' && years < 6) return false;
-      } else {
-        if (expFilter !== 'not_specified') return false;
+      } else if (expStr !== 'not specified') {
+        if (expFilter === 'entry' && !expStr.includes('entry') && !expStr.includes('junior')) return false;
+        if (expFilter === 'mid' && !expStr.includes('mid') && !expStr.includes('intermediate')) return false;
+        if (expFilter === 'senior' && !expStr.includes('senior') && !expStr.includes('lead') && !expStr.includes('principal') && !expStr.includes('staff')) return false;
       }
     }
     return true
