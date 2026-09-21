@@ -1,6 +1,6 @@
+'use client'
 import { Send, Download, Wand2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-'use client'
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef } from "react"
@@ -849,7 +849,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-              <div className="p-6 flex flex-col gap-6">
+              <div className="p-6 flex flex-col gap-6 overflow-y-auto max-h-[60vh]">
               <div>
                 <p className="text-sm text-slate-400">Target Role</p>
                 <p className="text-white font-medium flex justify-between items-center">
@@ -921,7 +921,15 @@ export default function Home() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-xs text-slate-500 mt-3">Add these keywords to your resume to beat the ATS filter.</p>
+                      <div className="flex items-center justify-between mt-4 border-t border-white/10 pt-4">
+                        <p className="text-xs text-slate-500">Add these keywords to beat the ATS filter.</p>
+                        <button 
+                          onClick={handleOptimizeResume}
+                          className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors flex items-center gap-1.5 shadow-lg shadow-indigo-500/20"
+                        >
+                          <Wand2 className="size-3" /> Auto-Optimize
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
