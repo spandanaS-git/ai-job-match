@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       Do not include any conversational text before or after the resume. Output ONLY the markdown resume.
     `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use a more capable model for rewriting
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // Use a more capable model for rewriting
     const result = await model.generateContent(prompt);
     
     let optimizedText = result.response.text();
