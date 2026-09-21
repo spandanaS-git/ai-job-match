@@ -134,12 +134,20 @@ def scrape_greenhouse():
                     
                     # Extract Experience Required using a smarter regex that looks for the word "experience"
                     exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
-                    
-                    # If that fails, fallback to standard years (less accurate)
                     if not exp_match:
                         exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-
-                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
+                    if exp_match:
+                        exp_req = f"{exp_match.group(1)}+ years"
+                    else:
+                        title_lower = title.lower()
+                        if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                            exp_req = 'Senior'
+                        elif any(k in title_lower for k in ['mid', 'intermediate']):
+                            exp_req = 'Mid-level'
+                        elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                            exp_req = 'Entry Level'
+                        else:
+                            exp_req = 'Not Specified'
                     
                     location_str = job.get('location', {}).get('name', 'Remote')
                     if not is_usa_job(location_str):
@@ -233,8 +241,18 @@ def scrape_workday():
                     exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
                     if not exp_match:
                         exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-
-                    exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
+                    if exp_match:
+                        exp_req = f"{exp_match.group(1)}+ years"
+                    else:
+                        title_lower = title.lower()
+                        if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                            exp_req = 'Senior'
+                        elif any(k in title_lower for k in ['mid', 'intermediate']):
+                            exp_req = 'Mid-level'
+                        elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                            exp_req = 'Entry Level'
+                        else:
+                            exp_req = 'Not Specified'
                     
                     posted_date = job_data.get('jobPostingInfo', {}).get('postedOn', '')
                     # Workday often returns "Posted 3 Days Ago". We let Supabase handle default now() if we can't parse it easily, 
@@ -299,8 +317,18 @@ def scrape_lever():
                 exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
                 if not exp_match:
                     exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-
-                exp_req = f"{exp_match.group(1)}+ years" if exp_match else "Not Specified"
+                if exp_match:
+                    exp_req = f"{exp_match.group(1)}+ years"
+                else:
+                    title_lower = title.lower()
+                    if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                        exp_req = 'Senior'
+                    elif any(k in title_lower for k in ['mid', 'intermediate']):
+                        exp_req = 'Mid-level'
+                    elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                        exp_req = 'Entry Level'
+                    else:
+                        exp_req = 'Not Specified'
                 
                 # Lever provides createdAt in milliseconds epoch
                 created_at_ms = job.get('createdAt')
@@ -396,6 +424,181 @@ def scrape_ashby():
         except Exception as e:
             print(f"  Error processing {board}: {e}")
 
+
+def scrape_jobicy():
+    print("Scraping Jobicy (Global Remote Jobs)...")
+    try:
+        # Fetch 200 remote jobs across all categories, heavily weighted toward US timezone
+        res = requests.get('https://jobicy.com/api/v2/remote-jobs?count=200&geo=usa', headers={'User-Agent': 'Mozilla/5.0'})
+        if res.status_code != 200:
+            print(f"  Failed to fetch Jobicy: {res.status_code}")
+            return
+            
+        data = res.json()
+        jobs = data.get('jobs', [])
+        inserted = 0
+        
+        for job in jobs:
+            title = job.get('jobTitle', '').lower()
+            
+            # 1. Strict Tech Filter
+            tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
+            if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
+                continue
+                
+            # 2. Strict US Filter
+            location_str = job.get('jobGeo', '')
+            if not is_us_job(location_str):
+                continue
+                
+            company_name = job.get('companyName', 'Unknown')
+            job_url = job.get('url', '')
+            
+            # Use jobSlug as a unique fallback id
+            job_id = job.get('id', job.get('jobSlug', ''))
+            
+            # Supabase lookup
+            check_res = requests.get(f"{SUPABASE_URL}/rest/v1/jobs?url=eq.{job_url}&select=id", headers={
+                "apikey": SUPABASE_KEY,
+                "Authorization": f"Bearer {SUPABASE_KEY}"
+            })
+            job_exists = check_res.status_code == 200 and len(check_res.json()) > 0
+            
+            if not job_exists:
+                html_content = job.get('jobDescription', '')
+                soup = BeautifulSoup(html_content, 'html.parser')
+                clean_text = soup.get_text(separator='\n', strip=True)
+                
+                exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
+                if not exp_match:
+                    exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
+                if exp_match:
+                    exp_req = f"{exp_match.group(1)}+ years"
+                else:
+                    title_lower = title.lower()
+                    if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                        exp_req = 'Senior'
+                    elif any(k in title_lower for k in ['mid', 'intermediate']):
+                        exp_req = 'Mid-level'
+                    elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                        exp_req = 'Entry Level'
+                    else:
+                        exp_req = 'Not Specified'
+                
+                posted_at = job.get('pubDate', '')
+                
+                job_data = {
+                    "title": job.get('jobTitle', ''),
+                    "company": company_name,
+                    "location": location_str,
+                    "url": job_url,
+                    "experience_required": exp_req,
+                    "description": clean_text[:15000],
+                    "posted_at": posted_at if posted_at else None
+                }
+                
+                insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                }, json=job_data)
+                
+                if insert_res.status_code in [201, 204]:
+                    inserted += 1
+                    
+        print(f"  Inserted {inserted} new US Data/AI jobs from Jobicy.")
+    except Exception as e:
+        print(f"  Error processing Jobicy: {e}")
+
+
+def scrape_themuse():
+    print("Scraping The Muse (Traditional Corporate Jobs)...")
+    try:
+        inserted = 0
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        # Loop through first 5 pages (100 jobs) of Data & Analytics in the US
+        for page in range(1, 6):
+            url = f"https://www.themuse.com/api/public/jobs?page={page}&category=Data%20and%20Analytics&location=United%20States"
+            res = requests.get(url, headers=headers)
+            if res.status_code != 200:
+                print(f"  Failed to fetch The Muse page {page}: {res.status_code}")
+                continue
+                
+            data = res.json()
+            jobs = data.get('results', [])
+            
+            for job in jobs:
+                title = job.get('name', '').lower()
+                
+                tech_keywords = ['data', 'machine learning', 'artificial intelligence', 'nlp', 'deep learning', 'analytics', 'scientist', 'llm', 'computer vision', 'mlops', 'generative', 'robotics', 'researcher', 'automation', 'quant', 'ai']
+                if not any(re.search(r'\b' + keyword + r'\b', title) for keyword in tech_keywords):
+                    continue
+                    
+                locations = job.get('locations', [])
+                location_str = locations[0].get('name', 'United States') if locations else 'United States'
+                
+                # The Muse API is pre-filtered for US, but double check just in case
+                if not is_usa_job(location_str):
+                    continue
+                    
+                company_name = job.get('company', {}).get('name', 'Unknown')
+                job_url = job.get('refs', {}).get('landing_page', '')
+                
+                check_res = requests.get(f"{SUPABASE_URL}/rest/v1/jobs?url=eq.{job_url}&select=id", headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}"
+                })
+                job_exists = check_res.status_code == 200 and len(check_res.json()) > 0
+                
+                if not job_exists:
+                    html_content = job.get('contents', '')
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    clean_text = soup.get_text(separator='\n', strip=True)
+                    
+                    exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
+                    if not exp_match:
+                        exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
+                    if exp_match:
+                        exp_req = f"{exp_match.group(1)}+ years"
+                    else:
+                        title_lower = title.lower()
+                        if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                            exp_req = 'Senior'
+                        elif any(k in title_lower for k in ['mid', 'intermediate']):
+                            exp_req = 'Mid-level'
+                        elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                            exp_req = 'Entry Level'
+                        else:
+                            exp_req = 'Not Specified'
+                    
+                    posted_at = job.get('publication_date', '')
+                    
+                    job_data = {
+                        "title": job.get('name', ''),
+                        "company": company_name,
+                        "location": location_str,
+                        "url": job_url,
+                        "experience_required": exp_req,
+                        "description": clean_text[:15000],
+                        "posted_at": posted_at if posted_at else None,
+                        "source": "themuse"
+                    }
+                    
+                    insert_res = requests.post(f"{SUPABASE_URL}/rest/v1/jobs", headers={
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": f"Bearer {SUPABASE_KEY}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal"
+                    }, json=job_data)
+                    
+                    if insert_res.status_code in [201, 204]:
+                        inserted += 1
+                        
+        print(f"  Inserted {inserted} new US Data/AI jobs from The Muse.")
+    except Exception as e:
+        print(f"  Error processing The Muse: {e}")
+
 def cleanup_old_jobs():
     print("Cleaning up old jobs to prevent database bloat...")
     try:
@@ -445,9 +648,28 @@ def scrape_himalayas():
             if not is_usa_job(loc_str) and loc_str != '':
                 continue
                 
-            # 3. Experience
-            sen = job.get('seniority', [])
-            exp_req = ", ".join(sen) if sen else "Not Specified"
+              # 3. Experience
+              exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
+              if not exp_match:
+                  exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
+              
+              if exp_match:
+                  exp_req = f"{exp_match.group(1)}+ years"
+              else:
+                  sen = job.get('seniority', [])
+                  if sen:
+                      exp_req = ", ".join(sen)
+                  else:
+                      title_lower = title.lower()
+                      if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                          exp_req = 'Senior'
+                      elif any(k in title_lower for k in ['mid', 'intermediate']):
+                          exp_req = 'Mid-level'
+                      elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                          exp_req = 'Entry Level'
+                      else:
+                          exp_req = 'Not Specified'
+
             
             # 4. Date
             pubDate = job.get('pubDate')
@@ -487,6 +709,7 @@ def scrape_himalayas():
 
 
 def scrape_remoteok():
+    scrape_jobicy()
     print("Scraping RemoteOK API...")
     try:
         res = requests.get('https://remoteok.com/api', headers={'User-Agent': 'Mozilla/5.0'})
@@ -546,5 +769,7 @@ if __name__ == "__main__":
     scrape_ashby()
     scrape_himalayas()
     scrape_remoteok()
+    scrape_jobicy()
+    scrape_themuse()
     cleanup_old_jobs()
     print("Scraping complete!")
