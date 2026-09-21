@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 import { fetchLatestDataJobs } from "./actions"
@@ -14,6 +14,18 @@ export default function Home() {
   const [error, setError] = useState("")
   const [totalJobsMetric, setTotalJobsMetric] = useState(0)
   const [totalCompaniesMetric, setTotalCompaniesMetric] = useState(0)
+  const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false)
+  
+  // Add Job Form State
+  const [addJobUrl, setAddJobUrl] = useState('')
+  const [addJobTitle, setAddJobTitle] = useState('')
+  const [addJobCompany, setAddJobCompany] = useState('')
+  const [addJobExp, setAddJobExp] = useState('')
+  const [addJobLocation, setAddJobLocation] = useState('Remote')
+  const [isVerifyingJob, setIsVerifyingJob] = useState(false)
+  const [isSavingJob, setIsSavingJob] = useState(false)
+  const [addJobError, setAddJobError] = useState('')
+
   const [searchQuery, setSearchQuery] = useState("")
   const [expFilter, setExpFilter] = useState("all")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -54,6 +66,67 @@ export default function Home() {
       setResumeText(text);
     }
   };
+
+
+  const verifyJobUrl = async () => {
+    if (!addJobUrl) return
+    setIsVerifyingJob(true)
+    setAddJobError('')
+    try {
+      const res = await fetch('/api/verify-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: addJobUrl })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        if (data.title) setAddJobTitle(data.title)
+        if (data.company) setAddJobCompany(data.company)
+      } else {
+        setAddJobError(data.error || 'Failed to auto-fill. Please enter manually.')
+      }
+    } catch (err: any) {
+      setAddJobError('Failed to verify URL. Please fill details manually.')
+    }
+    setIsVerifyingJob(false)
+  }
+
+  const saveManualJob = async () => {
+    if (!addJobUrl || !addJobTitle || !addJobCompany) {
+      setAddJobError('URL, Title, and Company are required')
+      return
+    }
+    setIsSavingJob(true)
+    setAddJobError('')
+    try {
+      const res = await fetch('/api/add-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          url: addJobUrl,
+          title: addJobTitle,
+          company: addJobCompany,
+          experience_required: addJobExp,
+          location: addJobLocation
+        })
+      })
+      const data = await res.json()
+      if (res.ok && data.job) {
+        setJobs([data.job, ...jobs])
+        setIsAddJobModalOpen(false)
+        setAddJobUrl('')
+        setAddJobTitle('')
+        setAddJobCompany('')
+        setAddJobExp('')
+        setAddJobLocation('Remote')
+      } else {
+        setAddJobError(data.error || 'Failed to save job')
+      }
+    } catch (err: any) {
+      setAddJobError('Failed to save job')
+    }
+    setIsSavingJob(false)
+  }
 
   const analyzeMatch = async () => {
     if (!resumeText || !selectedJob) return;
@@ -244,7 +317,14 @@ export default function Home() {
             />
           </div>
           
-          <div className="flex gap-4">
+                    <div className="flex gap-4">
+            <button
+              onClick={() => setIsAddJobModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg text-sm"
+            >
+              <Plus className="size-5" />
+              <span className="hidden md:inline">Add Job</span>
+            </button>
             <div className="relative w-full md:w-56 z-20">
               <button 
                 type="button"
