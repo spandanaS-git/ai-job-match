@@ -29,10 +29,32 @@ export async function POST(req: Request) {
       Do not include any conversational text before or after the resume. Output ONLY the markdown resume.
     `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use a more capable model for rewriting
-    const result = await model.generateContent(prompt);
+    const modelsToTry = [
+      "gemini-1.5-pro",
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-pro"
+    ];
     
-    let optimizedText = result.response.text();
+    let optimizedText = "";
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        optimizedText = result.response.text();
+        break;
+      } catch (err) {
+        lastError = err;
+        console.log(`Failed with model ${modelName}`, err);
+      }
+    }
+
+    if (!optimizedText) {
+      throw lastError || new Error("All fallback models failed.");
+    }
     // Strip markdown wrappers if the model wrapped it in ```markdown
     if (optimizedText.startsWith('```markdown')) {
       optimizedText = optimizedText.replace(/```markdown\n/, '').replace(/```$/, '');
