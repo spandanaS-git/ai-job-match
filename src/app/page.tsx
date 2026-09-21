@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
 import * as pdfjsLib from "pdfjs-dist";
@@ -116,7 +116,7 @@ export default function Home() {
           filename: 'Optimized_Resume.pdf',
           image: { type: 'jpeg' as const, quality: 0.98 },
           html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
         };
         html2pdf().set(opt).from(resumeRef.current).save();
       }
