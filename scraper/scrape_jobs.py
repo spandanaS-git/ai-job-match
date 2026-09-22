@@ -16,15 +16,18 @@ def is_us_job(location):
     return True
 
 
-# Load environment variables from the Next.js .env.local file
-load_dotenv(dotenv_path='../.env.local')
+# Load environment variables from .env.local
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.abspath(os.path.join(script_dir, '..'))
+load_dotenv(os.path.join(project_dir, '.env.local'))
+load_dotenv(os.path.join(script_dir, '.env.local'))
+load_dotenv('.env.local')
 
 SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") 
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in ../.env.local")
-    print("You must add SUPABASE_SERVICE_ROLE_KEY to your .env.local file to run the scraper!")
+    print("Error: Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local")
     exit(1)
 
 # A list of top tech companies. The script will automatically skip any that don't use Greenhouse.
@@ -666,28 +669,28 @@ def scrape_himalayas():
             loc_str = ", ".join(locations)
             if not is_usa_job(loc_str) and loc_str != '':
                 continue
-                
-              # 3. Experience
-              exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
-              if not exp_match:
-                  exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
-              
-              if exp_match:
-                  exp_req = f"{exp_match.group(1)}+ years"
-              else:
-                  sen = job.get('seniority', [])
-                  if sen:
-                      exp_req = ", ".join(sen)
-                  else:
-                      title_lower = title.lower()
-                      if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
-                          exp_req = 'Senior'
-                      elif any(k in title_lower for k in ['mid', 'intermediate']):
-                          exp_req = 'Mid-level'
-                      elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
-                          exp_req = 'Entry Level'
-                      else:
-                          exp_req = 'Not Specified'
+            # 3. Experience
+            clean_text = BeautifulSoup(job.get('description', ''), 'html.parser').get_text()
+            exp_match = re.search(r'(\d+)\+?\s*years?[^\.]{0,40}?experience', clean_text, re.IGNORECASE)
+            if not exp_match:
+                exp_match = re.search(r'(\d+)\+?\s*years?', clean_text, re.IGNORECASE)
+            
+            if exp_match:
+                exp_req = f"{exp_match.group(1)}+ years"
+            else:
+                sen = job.get('seniority', [])
+                if sen:
+                    exp_req = ", ".join(sen)
+                else:
+                    title_lower = title.lower()
+                    if any(k in title_lower for k in ['staff', 'principal', 'vp', 'director', 'head', 'manager', 'lead', 'senior', 'sr.', 'sr ', 'chief']):
+                        exp_req = 'Senior'
+                    elif any(k in title_lower for k in ['mid', 'intermediate']):
+                        exp_req = 'Mid-level'
+                    elif any(k in title_lower for k in ['junior', 'jr', 'entry', 'intern', 'grad']):
+                        exp_req = 'Entry Level'
+                    else:
+                        exp_req = 'Not Specified'
 
             
             # 4. Date
