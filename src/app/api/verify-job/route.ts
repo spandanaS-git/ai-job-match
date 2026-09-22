@@ -27,7 +27,56 @@ export async function POST(req: Request) {
     let experience = ''
     let postedDate = ''
 
+    // ── Workday special handler ────────────────────────────────────────────
+    // Workday pages are JS-rendered so a plain fetch returns an empty shell.
+    // Instead we parse the URL structure then call Workday's public CXS JSON API.
     try {
+      const urlObj = new URL(url)
+      if (urlObj.hostname.includes('myworkdayjobs.com')) {
+        const tenant = urlObj.hostname.split('.')[0]   // e.g. "cfindustries"
+        const wdVersion = urlObj.hostname.split('.')[1] // e.g. "wd1"
+        const pathParts = urlObj.pathname.split('/').filter(Boolean)
+        const careerPath = pathParts[0]  // e.g. "careers"
+        const lastSegment = pathParts[pathParts.length - 1]
+        const jobId = lastSegment.split('_').pop() || ''
+
+        // Derive display company name from the tenant slug
+        company = tenant.replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .split(/[-_]/)
+                        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(' ')
+
+        // Call Workday CXS API
+        const apiUrl = `https://${tenant}.${wdVersion}.myworkdayjobs.com/wday/cxs/${tenant}/${careerPath}/jobs/${jobId}`
+        const wdRes = await fetch(apiUrl, {
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        })
+        if (wdRes.ok) {
+          const wdData = await wdRes.json()
+          const posting = wdData.jobPostingInfo || wdData
+          if (posting.title) title = posting.title
+          if (posting.postedOn) postedDate = posting.postedOn
+          const descHtml: string = posting.jobDescription?.content || ''
+          const numberWords: Record<string, string> = {
+            'one':'1','two':'2','three':'3','four':'4','five':'5','six':'6',
+            'seven':'7','eight':'8','nine':'9','ten':'10','eleven':'11',
+            'twelve':'12','fifteen':'15','twenty':'20'
+          }
+          const numericExp = descHtml.match(/(\d+)\+?\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)/i) ||
+                             descHtml.match(/(\d+)\+?\s*years?/i)
+          const writtenExp = descHtml.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)?/i)
+          if (numericExp) experience = `${numericExp[1]}+ years`
+          else if (writtenExp) experience = `${numberWords[writtenExp[1].toLowerCase()]}+ years`
+        } else {
+          // API unavailable — extract title from URL slug
+          const slug = lastSegment.replace(/_[^_]+$/, '')
+          title = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        }
+      }
+    } catch (_) { /* ignore, fall through to generic HTML fetch */ }
+    // ── End Workday handler ────────────────────────────────────────────────
+
+    if (!title || !company) try {
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
