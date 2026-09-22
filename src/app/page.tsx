@@ -1,9 +1,7 @@
 'use client'
-import { Send, Download, Wand2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
 import * as pdfjsLib from "pdfjs-dist";
@@ -42,90 +40,6 @@ export default function Home() {
   const [resumeText, setResumeText] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
-
-    // AI Optimizer State
-    const [isOptimizing, setIsOptimizing] = useState(false)
-    const [optimizedResume, setOptimizedResume] = useState('')
-    const [chatHistory, setChatHistory] = useState<any[]>([])
-    const [chatInput, setChatInput] = useState('')
-    const [isChatting, setIsChatting] = useState(false)
-    const [showOptimizer, setShowOptimizer] = useState(false)
-    const resumeRef = useRef<HTMLDivElement>(null)
-
-    const handleOptimizeResume = async () => {
-      setIsOptimizing(true)
-      setShowOptimizer(true)
-      try {
-        const res = await fetch('/api/optimize-resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            resumeText,
-            jobDescription: selectedJob?.description,
-            missingKeywords: matchResult?.missingKeywords || []
-          })
-        })
-        const data = await res.json()
-        if (!res.ok || data.error) { alert("AI Error: " + (data.error || "Unknown error")); return; }
-          if (data.optimizedResume) {
-          setOptimizedResume(data.optimizedResume)
-          setChatHistory([{ role: 'AI', content: "I've rewritten your resume to include the missing keywords perfectly! How does it look? Let me know if you want to make any further changes." }])
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setIsOptimizing(false)
-      }
-    }
-
-    const handleChatSubmit = async (e: any) => {
-      e.preventDefault()
-      if (!chatInput.trim()) return
-      
-      const newMsg = { role: 'User', content: chatInput }
-      setChatHistory(prev => [...prev, newMsg])
-      setChatInput('')
-      setIsChatting(true)
-      
-      try {
-        const res = await fetch('/api/chat-resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            optimizedResume,
-            chatHistory: chatHistory,
-            userMessage: newMsg.content
-          })
-        })
-        const data = await res.json()
-        if (!res.ok || data.error) { alert("Chat Error: " + (data.error || "Unknown error")); return; }
-          if (data.resume) {
-          setOptimizedResume(data.resume)
-        }
-        if (data.message) {
-          setChatHistory(prev => [...prev, { role: 'AI', content: data.message }])
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setIsChatting(false)
-      }
-    }
-
-    const downloadPDF = async () => {
-      if (typeof window !== 'undefined' && resumeRef.current) {
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-          margin: 1,
-          filename: 'Optimized_Resume.pdf',
-          image: { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-        };
-        html2pdf().set(opt).from(resumeRef.current).save();
-      }
-    }
-
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -757,101 +671,18 @@ export default function Home() {
           <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`bg-slate-900 border border-white/10 rounded-2xl shadow-2xl transition-all duration-500 overflow-hidden flex flex-col ${showOptimizer ? "max-w-[95vw] w-full h-[90vh]" : "max-w-lg w-full max-h-[90vh]"}`}
+              className={"bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-w-lg w-full max-h-[90vh]"}
             >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-5 text-indigo-400" /> Check Score
               </h3>
-              <button onClick={() => { setIsMatchModalOpen(false); setShowOptimizer(false); }} className="text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => setIsMatchModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X className="size-5" />
               </button>
             </div>
             
-                          {showOptimizer ? (
-                <div className="flex-1 flex overflow-hidden">
-                  {/* Left: Chat Interface */}
-                  <div className="w-1/3 border-r border-white/10 flex flex-col bg-slate-950/50">
-                    <div className="p-4 border-b border-white/10 flex items-center gap-2">
-                      <Sparkles className="size-4 text-indigo-400" />
-                      <h4 className="font-semibold text-white">Resume AI Copilot</h4>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {chatHistory.map((msg, idx) => (
-                        <div key={idx} className={`flex flex-col ${msg.role === 'User' ? 'items-end' : 'items-start'}`}>
-                          <span className="text-xs text-slate-500 mb-1">{msg.role}</span>
-                          <div className={`p-3 rounded-2xl max-w-[90%] text-sm ${msg.role === 'User' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-300 rounded-bl-none border border-white/5'}`}>
-                            {msg.content}
-                          </div>
-                        </div>
-                      ))}
-                      {isChatting && (
-                        <div className="flex flex-col items-start">
-                          <span className="text-xs text-slate-500 mb-1">AI</span>
-                          <div className="p-3 rounded-2xl bg-slate-800 text-slate-300 rounded-bl-none border border-white/5 flex items-center gap-2 text-sm">
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce"></div>
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="p-4 bg-slate-900 border-t border-white/10">
-                      <form onSubmit={handleChatSubmit} className="relative">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="e.g. Make it shorter..."
-                          disabled={isOptimizing || isChatting}
-                          className="w-full bg-slate-950 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50"
-                        />
-                        <button 
-                          type="submit"
-                          disabled={!chatInput.trim() || isOptimizing || isChatting}
-                          className="absolute right-2 top-2 p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg disabled:opacity-50 transition-colors"
-                        >
-                          <Send className="size-4" />
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                  
-                  {/* Right: Document Viewer */}
-                  <div className="flex-1 flex flex-col bg-slate-900 relative">
-                    <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                      <h4 className="font-semibold text-white">Live Preview</h4>
-                      <button 
-                        onClick={downloadPDF}
-                        disabled={isOptimizing || isChatting}
-                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-md flex items-center gap-2 transition-colors disabled:opacity-50"
-                      >
-                        <Download className="size-4" /> Download PDF
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto p-8 bg-slate-200">
-                      <div 
-                        ref={resumeRef} 
-                        className="bg-white max-w-[800px] mx-auto p-12 shadow-2xl min-h-[1056px] text-black prose prose-sm max-w-none"
-                      >
-                        {isOptimizing ? (
-                          <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
-                            <Sparkles className="size-8 animate-pulse text-indigo-500" />
-                            <p className="font-medium animate-pulse">AI is rewriting your resume...</p>
-                          </div>
-                        ) : (
-                          <ReactMarkdown>{optimizedResume}</ReactMarkdown>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-              <div className="p-6 flex flex-col gap-6 overflow-y-auto max-h-[60vh]">
+                          <div className="p-6 flex flex-col gap-6 overflow-y-auto max-h-[60vh]">
               <div>
                 <p className="text-sm text-slate-400">Target Role</p>
                 <p className="text-white font-medium flex justify-between items-center">
@@ -923,15 +754,7 @@ export default function Home() {
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between mt-4 border-t border-white/10 pt-4">
-                        <p className="text-xs text-slate-500">Add these keywords to beat the ATS filter.</p>
-                        <button 
-                          onClick={handleOptimizeResume}
-                          className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors flex items-center gap-1.5 shadow-lg shadow-indigo-500/20"
-                        >
-                          <Wand2 className="size-3" /> Auto-Optimize
-                        </button>
-                      </div>
+                      <p className="text-xs text-slate-500 mt-4 pt-4 border-t border-white/10">Add these keywords to beat the ATS filter.</p>
                     </div>
                   )}
                 </div>
@@ -940,7 +763,7 @@ export default function Home() {
 
             <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
               <button 
-                onClick={() => { setIsMatchModalOpen(false); setShowOptimizer(false); }}
+                onClick={() => setIsMatchModalOpen(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >
                 Close
@@ -954,17 +777,8 @@ export default function Home() {
                   <Sparkles className="size-4" /> Analyze
                 </button>
               )}
-                {matchResult && (
-                  <button 
-                    onClick={handleOptimizeResume}
-                    className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 shadow-lg shadow-indigo-500/20"
-                  >
-                    <Wand2 className="size-4" /> Auto-Optimize Resume
-                  </button>
-                )}
+
             </div>
-              </>
-              )}
           </motion.div>
         </div>
       )}
