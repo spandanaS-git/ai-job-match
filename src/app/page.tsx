@@ -241,14 +241,32 @@ export default function Home() {
 
   const formatExactDate = (dateString: string) => {
     if (!dateString) return ""
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+      const [y, m, d] = dateString.trim().split('-').map(Number)
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    }
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const getDaysDiff = (dateString: string) => {
+    if (!dateString) return 999
+    let jobDate: Date
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+      const [y, m, d] = dateString.trim().split('-').map(Number)
+      jobDate = new Date(y, m - 1, d)
+    } else {
+      jobDate = new Date(dateString)
+    }
+    const today = new Date()
+    const jobMidnight = new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate()).getTime()
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    return Math.round((todayMidnight - jobMidnight) / (1000 * 60 * 60 * 24))
   }
   
   const calculateDaysAgo = (dateString: string) => {
     if (!dateString) return ""
-    const diffTime = new Date().getTime() - new Date(dateString).getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    if (diffDays === 0) return "Today"
+    const diffDays = getDaysDiff(dateString)
+    if (diffDays <= 0) return "Today"
     if (diffDays === 1) return "1 day ago"
     return `${diffDays} days ago`
   }
@@ -442,9 +460,7 @@ export default function Home() {
             </div>
           ) : (
             currentJobs.map((job, i) => {
-              const jobDate = job.posted_at || job.created_at;
-              const diffTime = new Date().getTime() - new Date(jobDate).getTime();
-              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              const diffDays = getDaysDiff(job.posted_at || job.created_at);
               
               return (
                 <motion.div 
@@ -567,9 +583,7 @@ export default function Home() {
                   </tr>
                 ) : (
                   currentJobs.map((job, i) => {
-                    const jobDate = job.posted_at || job.created_at;
-                    const diffTime = new Date().getTime() - new Date(jobDate).getTime();
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    const diffDays = getDaysDiff(job.posted_at || job.created_at);
                     
                     return (
                     <motion.tr 
