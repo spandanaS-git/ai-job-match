@@ -5,6 +5,30 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+function extractExperience(text: string): string {
+  const numberWords: Record<string, string> = {
+    'one':'1','two':'2','three':'3','four':'4','five':'5','six':'6',
+    'seven':'7','eight':'8','nine':'9','ten':'10','eleven':'11',
+    'twelve':'12','fifteen':'15','twenty':'20'
+  };
+
+  // Collect all numeric year counts — allows arbitrary words between "years" and "experience"
+  const numericMatches = [...text.matchAll(/(\d+)\+?\s*(?:or\s+more\s+)?years?(?:\s+(?:\w+\s+){0,5}experience)?/gi)];
+  const numericValues = numericMatches.map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 30);
+
+  // Collect all written-out year counts
+  const writtenPattern = /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?/gi;
+  const writtenMatches = [...text.matchAll(writtenPattern)];
+  const writtenValues = writtenMatches.map(m => parseInt(numberWords[m[1].toLowerCase()], 10));
+
+  const allValues = [...numericValues, ...writtenValues].filter(Boolean);
+  if (allValues.length === 0) return '';
+
+  // Use the highest requirement (most restrictive role requirement)
+  const max = Math.max(...allValues);
+  return `${max}+ years`;
+}
+
 export async function POST(req: Request) {
   try {
     const { url } = await req.json()
@@ -57,16 +81,8 @@ export async function POST(req: Request) {
           if (posting.title) title = posting.title
           if (posting.postedOn) postedDate = posting.postedOn
           const descHtml: string = posting.jobDescription?.content || ''
-          const numberWords: Record<string, string> = {
-            'one':'1','two':'2','three':'3','four':'4','five':'5','six':'6',
-            'seven':'7','eight':'8','nine':'9','ten':'10','eleven':'11',
-            'twelve':'12','fifteen':'15','twenty':'20'
-          }
-          const numericExp = descHtml.match(/(\d+)\+?\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)/i) ||
-                             descHtml.match(/(\d+)\+?\s*years?/i)
-          const writtenExp = descHtml.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)?/i)
-          if (numericExp) experience = `${numericExp[1]}+ years`
-          else if (writtenExp) experience = `${numberWords[writtenExp[1].toLowerCase()]}+ years`
+          const expFromDesc = extractExperience(descHtml)
+          if (expFromDesc) experience = expFromDesc
         } else {
           // API unavailable — extract title from URL slug
           const slug = lastSegment.replace(/_[^_]+$/, '')
@@ -113,20 +129,8 @@ export async function POST(req: Request) {
         title = title.replace(/Job Application for /ig, '').replace(/Careers/ig, '').trim()
 
         // Extract experience from HTML body — handles both numeric (5+) and written-out (five or more years)
-        const numberWords: Record<string, string> = {
-          'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
-          'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
-          'eleven': '11', 'twelve': '12', 'fifteen': '15', 'twenty': '20'
-        };
-        const numericExp = html.match(/(\d+)\+?\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)/i) ||
-                           html.match(/(\d+)\+?\s*years?/i);
-        const writtenExp = html.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)?/i);
-        if (numericExp) {
-          experience = `${numericExp[1]}+ years`;
-        } else if (writtenExp) {
-          const digit = numberWords[writtenExp[1].toLowerCase()];
-          experience = `${digit}+ years`;
-        }
+        const expFromHtml = extractExperience(html)
+        if (expFromHtml) experience = expFromHtml
         
         // Extract posted date from structured data or meta tags
         const dateMatch = html.match(/"datePosted"\s*:\s*"([^"]+)"/i) || 
