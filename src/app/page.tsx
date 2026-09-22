@@ -4,8 +4,6 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
-import * as pdfjsLib from "pdfjs-dist";
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
@@ -52,6 +50,7 @@ export default function Home() {
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [resumeText, setResumeText] = useState("")
+  const [isParsingPdf, setIsParsingPdf] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
 
@@ -59,26 +58,35 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.type === "application/pdf") {
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf')) {
+      setIsParsingPdf(true);
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(" ");
-          fullText += pageText + " ";
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/parse-pdf', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.text) {
+          setResumeText(data.text);
+        } else {
+          throw new Error(data.error || 'Could not extract text from PDF');
         }
-        setResumeText(fullText);
-      } catch (err) {
+      } catch (err: any) {
         console.error("PDF Parsing Error", err);
-        alert("Failed to parse PDF. Please try a different file.");
+        alert("Failed to parse PDF: " + (err.message || "Please try a different file."));
+      } finally {
+        setIsParsingPdf(false);
       }
     } else {
       // Text or other formats
-      const text = await file.text();
-      setResumeText(text);
+      try {
+        const text = await file.text();
+        setResumeText(text);
+      } catch (err: any) {
+        alert("Failed to read file: " + err.message);
+      }
     }
   };
 
@@ -756,13 +764,23 @@ export default function Home() {
                     type="file" 
                     accept=".pdf,.txt" 
                     onChange={handleFileUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isParsingPdf}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                   />
-                  <FileText className="size-10 text-slate-500 mb-3" />
-                  <p className="text-slate-300 font-medium mb-1">
-                    {resumeText ? "Resume loaded successfully!" : "Drop your resume here or click to browse"}
-                  </p>
-                  <p className="text-xs text-slate-500">Supports PDF & TXT (Max 5MB)</p>
+                  {isParsingPdf ? (
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <div className="size-8 rounded-full border-3 border-indigo-500/30 border-t-indigo-500 animate-spin mb-3"></div>
+                      <p className="text-indigo-400 font-medium text-sm animate-pulse">Reading PDF resume...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <FileText className="size-10 text-slate-500 mb-3" />
+                      <p className="text-slate-300 font-medium mb-1">
+                        {resumeText ? "Resume loaded successfully!" : "Drop your resume here or click to browse"}
+                      </p>
+                      <p className="text-xs text-slate-500">Supports PDF & TXT (Max 5MB)</p>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -822,7 +840,7 @@ export default function Home() {
               {!matchResult && !isAnalyzing && (
                 <button 
                   onClick={analyzeMatch}
-                  disabled={!resumeText}
+                  disabled={!resumeText || isParsingPdf}
                   className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Sparkles className="size-4" /> Analyze
