@@ -63,10 +63,20 @@ export async function POST(req: Request) {
         }
         title = title.replace(/Job Application for /ig, '').replace(/Careers/ig, '').trim()
 
-        // Extract experience from HTML body
-        const expMatch = html.match(/(\d+)\+?\s*years?[^\.]{0,40}?experience/i) || html.match(/(\d+)\+?\s*years?/i)
-        if (expMatch) {
-          experience = `${expMatch[1]}+ years`
+        // Extract experience from HTML body — handles both numeric (5+) and written-out (five or more years)
+        const numberWords: Record<string, string> = {
+          'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+          'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+          'eleven': '11', 'twelve': '12', 'fifteen': '15', 'twenty': '20'
+        };
+        const numericExp = html.match(/(\d+)\+?\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)/i) ||
+                           html.match(/(\d+)\+?\s*years?/i);
+        const writtenExp = html.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?\s*(?:of\s+)?(?:experience|exp)?/i);
+        if (numericExp) {
+          experience = `${numericExp[1]}+ years`;
+        } else if (writtenExp) {
+          const digit = numberWords[writtenExp[1].toLowerCase()];
+          experience = `${digit}+ years`;
         }
         
         // Extract posted date from structured data or meta tags
