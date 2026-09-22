@@ -94,7 +94,8 @@ export default function Home() {
       if (res.ok) {
         if (data.title) setAddJobTitle(data.title)
         if (data.company) setAddJobCompany(data.company)
-                if (data.experience) setAddJobExp(data.experience)
+        if (data.experience) setAddJobExp(data.experience)
+        if (data.location) setAddJobLocation(data.location)
         if (data.postedDate) {
           const d = new Date(data.postedDate)
           if (!isNaN(d.getTime())) {

@@ -50,6 +50,7 @@ export async function POST(req: Request) {
     let company = ''
     let experience = ''
     let postedDate = ''
+    let location = ''
 
     // ── Workday special handler ────────────────────────────────────────────
     // Workday pages are JS-rendered so a plain fetch returns an empty shell.
@@ -80,6 +81,15 @@ export async function POST(req: Request) {
           const posting = wdData.jobPostingInfo || wdData
           if (posting.title) title = posting.title
           if (posting.postedOn) postedDate = posting.postedOn
+          // Extract location from Workday API
+          if (posting.jobPostingLocations && posting.jobPostingLocations.length > 0) {
+            const loc = posting.jobPostingLocations[0]
+            location = loc.descriptor || loc.name || ''
+          } else if (posting.locationsText) {
+            location = posting.locationsText
+          } else if (posting.remoteType) {
+            location = posting.remoteType.descriptor || 'Remote'
+          }
           const descHtml: string = posting.jobDescription?.content || ''
           const expFromDesc = extractExperience(descHtml)
           if (expFromDesc) experience = expFromDesc
@@ -140,6 +150,27 @@ export async function POST(req: Request) {
         if (dateMatch && dateMatch[1]) {
           postedDate = dateMatch[1]
         }
+
+        // Extract location from JSON-LD, meta tags, or common text patterns
+        if (!location) {
+          const jsonLdLoc = html.match(/"jobLocation"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/i) ||
+                            html.match(/"addressLocality"\s*:\s*"([^"]+)"/i) ||
+                            html.match(/"workplaceType"\s*:\s*"([^"]+)"/i)
+          if (jsonLdLoc) {
+            location = jsonLdLoc[1]
+          } else {
+            // Look for Remote / Hybrid / Onsite keywords
+            const remoteMatch = html.match(/\b(fully\s+remote|100%\s+remote|remote\s+only)\b/i)
+            const hybridMatch = html.match(/\b(hybrid)\b/i)
+            const onsiteMatch = html.match(/\b(on-?site|in\s+office|in-?person)\b/i)
+            // Look for "City, ST" pattern near location labels
+            const cityMatch = html.match(/(?:location|based in|office)[^<]{0,80}?([A-Z][a-z]+(?: [A-Z][a-z]+)*,\s*[A-Z]{2})/i)
+            if (remoteMatch) location = 'Remote'
+            else if (hybridMatch) location = 'Hybrid'
+            else if (cityMatch) location = cityMatch[1].trim()
+            else if (onsiteMatch) location = 'On-site'
+          }
+        }
       }
     } catch (e) {
       // Ignore fetch errors, fallback to URL parsing
@@ -189,7 +220,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Could not parse automatically. Please fill manually.` }, { status: 400 })
     }
 
-    return NextResponse.json({ title, company, experience, postedDate })
+    return NextResponse.json({ title, company, experience, postedDate, location })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
