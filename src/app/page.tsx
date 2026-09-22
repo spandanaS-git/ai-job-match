@@ -16,13 +16,27 @@ export default function Home() {
   const [totalCompaniesMetric, setTotalCompaniesMetric] = useState(0)
   const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false)
   
+  const getTodayLocalDate = () => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // Add Job Form State
   const [addJobUrl, setAddJobUrl] = useState('')
   const [addJobTitle, setAddJobTitle] = useState('')
   const [addJobCompany, setAddJobCompany] = useState('')
   const [addJobExp, setAddJobExp] = useState('')
   const [addJobLocation, setAddJobLocation] = useState('Remote')
-  const [addJobPostedDate, setAddJobPostedDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [addJobPostedDate, setAddJobPostedDate] = useState(() => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
   const [isVerifyingJob, setIsVerifyingJob] = useState(false)
   const [isSavingJob, setIsSavingJob] = useState(false)
   const [addJobError, setAddJobError] = useState('')
@@ -75,7 +89,7 @@ export default function Home() {
     setAddJobCompany('')
     setAddJobExp('')
     setAddJobLocation('Remote')
-    setAddJobPostedDate(new Date().toISOString().split('T')[0])
+    setAddJobPostedDate(getTodayLocalDate())
     setAddJobError('')
     setIsAddJobModalOpen(false)
   }
@@ -97,10 +111,7 @@ export default function Home() {
         if (data.experience) setAddJobExp(data.experience)
         if (data.location) setAddJobLocation(data.location)
         if (data.postedDate) {
-          const d = new Date(data.postedDate)
-          if (!isNaN(d.getTime())) {
-            setAddJobPostedDate(d.toISOString().split('T')[0])
-          }
+          setAddJobPostedDate(data.postedDate)
         }
       } else {
         setAddJobError(data.error || 'Failed to auto-fill. Please enter manually.')

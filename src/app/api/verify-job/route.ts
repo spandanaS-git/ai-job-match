@@ -6,27 +6,95 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 function extractExperience(text: string): string {
-  const numberWords: Record<string, string> = {
-    'one':'1','two':'2','three':'3','four':'4','five':'5','six':'6',
-    'seven':'7','eight':'8','nine':'9','ten':'10','eleven':'11',
-    'twelve':'12','fifteen':'15','twenty':'20'
-  };
+  if (!text) return ''
+  const clean = text
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
 
-  // Collect all numeric year counts — allows arbitrary words between "years" and "experience"
-  const numericMatches = [...text.matchAll(/(\d+)\+?\s*(?:or\s+more\s+)?years?(?:\s+(?:\w+\s+){0,5}experience)?/gi)];
-  const numericValues = numericMatches.map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 30);
+  const numberWords: Record<string, number> = {
+    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+    'eleven': 11, 'twelve': 12, 'fifteen': 15, 'twenty': 20
+  }
 
-  // Collect all written-out year counts
-  const writtenPattern = /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?/gi;
-  const writtenMatches = [...text.matchAll(writtenPattern)];
-  const writtenValues = writtenMatches.map(m => parseInt(numberWords[m[1].toLowerCase()], 10));
+  const foundYears: number[] = []
 
-  const allValues = [...numericValues, ...writtenValues].filter(Boolean);
-  if (allValues.length === 0) return '';
+  // Pattern 1: Numeric counts
+  const p1 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?(\d+)(?:\s*-\s*\d+)?\+?\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
+  for (const m of clean.matchAll(p1)) {
+    const num = parseInt(m[1], 10)
+    if (num >= 1 && num <= 20) {
+      foundYears.push(num)
+    }
+  }
 
-  // Use the highest requirement (most restrictive role requirement)
-  const max = Math.max(...allValues);
-  return `${max}+ years`;
+  // Pattern 2: Written-out counts
+  const p2 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
+  for (const m of clean.matchAll(p2)) {
+    const word = m[1].toLowerCase()
+    if (numberWords[word]) {
+      foundYears.push(numberWords[word])
+    }
+  }
+
+  // Pattern 3: YOE shorthand
+  const p3 = /(\d+)\+?\s*(?:yoe|years?\s*of\s*experience)/gi
+  for (const m of clean.matchAll(p3)) {
+    const num = parseInt(m[1], 10)
+    if (num >= 1 && num <= 20) {
+      foundYears.push(num)
+    }
+  }
+
+  if (foundYears.length > 0) {
+    const maxYears = Math.max(...foundYears)
+    return `${maxYears}+ years`
+  }
+
+  return ''
+}
+
+function parseRelativeOrAbsoluteDate(dateStr: string): string {
+  if (!dateStr) return ''
+  const trimmed = dateStr.trim()
+
+  const today = new Date()
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  if (/today/i.test(trimmed)) {
+    return formatDate(today)
+  }
+  if (/yesterday/i.test(trimmed)) {
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+    return formatDate(yesterday)
+  }
+  const daysAgoMatch = trimmed.match(/(\d+)\+?\s*days?\s*ago/i)
+  if (daysAgoMatch) {
+    const days = parseInt(daysAgoMatch[1], 10)
+    const past = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
+    return formatDate(past)
+  }
+  const monthsAgoMatch = trimmed.match(/(\d+)\+?\s*months?\s*ago/i)
+  if (monthsAgoMatch) {
+    const months = parseInt(monthsAgoMatch[1], 10)
+    const past = new Date(today.getTime() - months * 30 * 24 * 60 * 60 * 1000)
+    return formatDate(past)
+  }
+
+  const parsed = new Date(trimmed)
+  if (!isNaN(parsed.getTime())) {
+    return formatDate(parsed)
+  }
+
+  return ''
 }
 
 export async function POST(req: Request) {
@@ -34,7 +102,7 @@ export async function POST(req: Request) {
     const { url } = await req.json()
     if (!url) return NextResponse.json({ error: 'URL is required' }, { status: 400 })
 
-    // 1. Check if job already exists in DB based on base URL (strip query params)
+    // 1. Check if job already exists in DB based on base URL
     const baseUrl = url.split('?')[0]
     const { data: existing } = await supabase
       .from('jobs')
@@ -53,8 +121,6 @@ export async function POST(req: Request) {
     let location = ''
 
     // ── Workday special handler ────────────────────────────────────────────
-    // Workday pages are JS-rendered so a plain fetch returns an empty shell.
-    // Instead we parse the URL structure then call Workday's public CXS JSON API.
     try {
       const urlObj = new URL(url)
       if (urlObj.hostname.includes('myworkdayjobs.com')) {
@@ -65,41 +131,63 @@ export async function POST(req: Request) {
         const lastSegment = pathParts[pathParts.length - 1]
         const jobId = lastSegment.split('_').pop() || ''
 
-        // Derive display company name from the tenant slug
         company = tenant.replace(/([a-z])([A-Z])/g, '$1 $2')
                         .split(/[-_]/)
                         .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
                         .join(' ')
 
-        // Call Workday CXS API
         const apiUrl = `https://${tenant}.${wdVersion}.myworkdayjobs.com/wday/cxs/${tenant}/${careerPath}/jobs/${jobId}`
         const wdRes = await fetch(apiUrl, {
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*'
+          }
         })
         if (wdRes.ok) {
           const wdData = await wdRes.json()
           const posting = wdData.jobPostingInfo || wdData
           if (posting.title) title = posting.title
-          if (posting.postedOn) postedDate = posting.postedOn
-          // Extract location from Workday API
-          if (posting.jobPostingLocations && posting.jobPostingLocations.length > 0) {
+          if (posting.postedOn) postedDate = parseRelativeOrAbsoluteDate(posting.postedOn)
+          
+          // Location from Workday
+          if (typeof posting.location === 'string' && posting.location.trim()) {
+            location = posting.location.trim()
+          } else if (posting.jobPostingLocation && typeof posting.jobPostingLocation === 'string') {
+            location = posting.jobPostingLocation.trim()
+          } else if (posting.jobPostingLocation?.descriptor) {
+            location = posting.jobPostingLocation.descriptor.trim()
+          } else if (Array.isArray(posting.jobPostingLocations) && posting.jobPostingLocations.length > 0) {
             const loc = posting.jobPostingLocations[0]
-            location = loc.descriptor || loc.name || ''
-          } else if (posting.locationsText) {
+            location = loc.descriptor || loc.name || loc.location || ''
+          } else if (typeof posting.locationsText === 'string') {
             location = posting.locationsText
           } else if (posting.remoteType) {
-            location = posting.remoteType.descriptor || 'Remote'
+            location = typeof posting.remoteType === 'string' ? posting.remoteType : (posting.remoteType.descriptor || 'Remote')
           }
-          const descHtml: string = posting.jobDescription?.content || ''
+
+          // Description and Experience from Workday
+          const descHtml: string = typeof posting.jobDescription === 'string'
+            ? posting.jobDescription
+            : (posting.jobDescription?.content || posting.description || '')
           const expFromDesc = extractExperience(descHtml)
           if (expFromDesc) experience = expFromDesc
         } else {
-          // API unavailable — extract title from URL slug
           const slug = lastSegment.replace(/_[^_]+$/, '')
           title = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
         }
+
+        // Fallback location from URL path e.g. /job/Deerfield-IL/...
+        if (!location && pathParts.includes('job')) {
+          const jobIndex = pathParts.indexOf('job')
+          if (jobIndex + 2 < pathParts.length) {
+            const locSegment = pathParts[jobIndex + 1]
+            if (locSegment && locSegment !== lastSegment) {
+              location = locSegment.replace(/[-_]/g, ', ')
+            }
+          }
+        }
       }
-    } catch (_) { /* ignore, fall through to generic HTML fetch */ }
+    } catch (_) { /* ignore workday error, fall through */ }
     // ── End Workday handler ────────────────────────────────────────────────
 
     if (!title || !company) try {
@@ -125,11 +213,9 @@ export async function POST(req: Request) {
         } else if (pageTitle.includes(' - ')) {
           const parts = pageTitle.split(' - ')
           if (url.includes('paylocity.com')) {
-            // Paylocity puts Company Name before Job Title
             company = parts[0].trim()
             title = parts.length > 1 ? parts[1].trim() : ''
           } else {
-            // Default assumes Job Title before Company
             title = parts[0].trim()
             company = parts.length > 1 ? parts[1].trim() : ''
           }
@@ -138,20 +224,17 @@ export async function POST(req: Request) {
         }
         title = title.replace(/Job Application for /ig, '').replace(/Careers/ig, '').trim()
 
-        // Extract experience from HTML body — handles both numeric (5+) and written-out (five or more years)
         const expFromHtml = extractExperience(html)
         if (expFromHtml) experience = expFromHtml
         
-        // Extract posted date from structured data or meta tags
         const dateMatch = html.match(/"datePosted"\s*:\s*"([^"]+)"/i) || 
                           html.match(/<meta[^>]*property="article:published_time"[^>]*content="([^"]+)"/i) ||
                           html.match(/<time[^>]*datetime="([^"]+)"/i) ||
                           html.match(/"postedAt"\s*:\s*"([^"]+)"/i)
         if (dateMatch && dateMatch[1]) {
-          postedDate = dateMatch[1]
+          postedDate = parseRelativeOrAbsoluteDate(dateMatch[1])
         }
 
-        // Extract location from JSON-LD, meta tags, or common text patterns
         if (!location) {
           const jsonLdLoc = html.match(/"jobLocation"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"/i) ||
                             html.match(/"addressLocality"\s*:\s*"([^"]+)"/i) ||
@@ -159,11 +242,9 @@ export async function POST(req: Request) {
           if (jsonLdLoc) {
             location = jsonLdLoc[1]
           } else {
-            // Look for Remote / Hybrid / Onsite keywords
             const remoteMatch = html.match(/\b(fully\s+remote|100%\s+remote|remote\s+only)\b/i)
             const hybridMatch = html.match(/\b(hybrid)\b/i)
             const onsiteMatch = html.match(/\b(on-?site|in\s+office|in-?person)\b/i)
-            // Look for "City, ST" pattern near location labels
             const cityMatch = html.match(/(?:location|based in|office)[^<]{0,80}?([A-Z][a-z]+(?: [A-Z][a-z]+)*,\s*[A-Z]{2})/i)
             if (remoteMatch) location = 'Remote'
             else if (hybridMatch) location = 'Hybrid'
@@ -176,7 +257,7 @@ export async function POST(req: Request) {
       // Ignore fetch errors, fallback to URL parsing
     }
     
-    // Fallback: If title/company is missing (e.g. 403 Forbidden Cloudflare block), parse the URL
+    // Fallback: URL parsing
     if (!title || !company) {
       try {
         const urlObj = new URL(url)
