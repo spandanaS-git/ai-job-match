@@ -5,54 +5,130 @@ function escapeRegex(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function analyzeAtsLocally(resumeText: string, jobDescription: string) {
-  const commonTechSkills = [
-    "Python", "SQL", "R", "Java", "Scala", "C++", "C#", "Go", "Rust", "JavaScript", "TypeScript",
-    "Pandas", "NumPy", "Scikit-Learn", "TensorFlow", "PyTorch", "Keras", "Spark", "PySpark", "Hadoop",
-    "AWS", "GCP", "Azure", "Docker", "Kubernetes", "Airflow", "dbt", "Snowflake", "Databricks", "BigQuery",
-    "Redshift", "PostgreSQL", "MySQL", "MongoDB", "Cassandra", "Redis", "Kafka", "Tableau", "PowerBI", "Looker",
-    "Excel", "Git", "CI/CD", "Terraform", "MLOps", "NLP", "LLM", "Computer Vision", "Deep Learning",
-    "Machine Learning", "Data Engineering", "Data Modeling", "Data Warehousing", "ETL", "ELT", "A/B Testing",
-    "Statistics", "REST API", "GraphQL", "Agile", "Scrum", "Kubeflow", "MLflow", "FastAPI", "Flask", "Django"
-  ];
+const SKILL_DICTIONARY: Record<string, string[]> = {
+  // Languages & Core Data Tech
+  "Python": ["python", "py"],
+  "SQL": ["sql", "tsql", "plsql", "postgresql", "postgres", "mysql", "sqlite"],
+  "R": ["\\br\\b", "r programming", "r-project"],
+  "Java": ["java"],
+  "Scala": ["scala"],
+  "C++": ["c\\+\\+"],
+  "TypeScript": ["typescript", "ts"],
+  "JavaScript": ["javascript", "js"],
 
+  // Data & BI Tools
+  "Tableau": ["tableau"],
+  "Power BI": ["power bi", "powerbi", "dax"],
+  "Looker": ["looker", "lookml"],
+  "Excel": ["excel", "spreadsheets", "vlookup"],
+  "Data Modeling": ["data modeling", "data model", "star schema", "dimensional modeling", "relational modeling"],
+  "Data Warehousing": ["data warehouse", "data warehousing", "dwh", "marts"],
+  "Data Pipelines": ["data pipeline", "data pipelines", "pipeline development"],
+  "ETL / ELT": ["etl", "elt", "data extraction", "data transformation", "data ingestion"],
+  "A/B Testing": ["a/b testing", "ab testing", "experimentation", "hypothesis testing", "causal inference"],
+  "Statistics": ["statistics", "statistical analysis", "hypothesis test", "statistical modeling", "probability"],
+
+  // Big Data & Cloud Platforms
+  "Snowflake": ["snowflake"],
+  "Databricks": ["databricks"],
+  "Spark": ["spark", "pyspark", "apache spark"],
+  "Hadoop": ["hadoop", "hive"],
+  "Kafka": ["kafka", "event streaming", "pubsub"],
+  "Airflow": ["airflow", "apache airflow"],
+  "dbt": ["\\bdbt\\b", "data build tool"],
+  "AWS": ["aws", "amazon web services", "s3", "ec2", "redshift", "athena", "glue", "emr", "lambda"],
+  "GCP": ["gcp", "google cloud", "bigquery", "dataflow", "dataproc"],
+  "Azure": ["azure", "synapse", "azure data factory", "adls", "fabric"],
+  "Docker": ["docker", "containerization", "containers"],
+  "Kubernetes": ["kubernetes", "k8s"],
+  "Terraform": ["terraform", "iac"],
+
+  // AI & Machine Learning
+  "Machine Learning": ["machine learning", "\\bml\\b", "predictive modeling", "supervised learning"],
+  "Deep Learning": ["deep learning", "neural networks", "cnn", "rnn", "transformers"],
+  "LLMs / Generative AI": ["llm", "llms", "large language model", "generative ai", "genai", "rag", "langchain", "prompt engineering"],
+  "NLP": ["nlp", "natural language processing", "text mining", "spacy", "nltk", "huggingface"],
+  "Computer Vision": ["computer vision", "opencv", "yolo", "object detection"],
+  "PyTorch": ["pytorch"],
+  "TensorFlow": ["tensorflow", "keras"],
+  "Scikit-Learn": ["scikit-learn", "sklearn"],
+  "Pandas": ["pandas"],
+  "NumPy": ["numpy"],
+  "MLOps": ["mlops", "mlflow", "kubeflow", "model deployment", "model monitoring"],
+
+  // Databases
+  "PostgreSQL": ["postgresql", "postgres"],
+  "MongoDB": ["mongodb", "nosql"],
+  "Redis": ["redis"],
+  "Vector DB": ["pinecone", "weaviate", "chroma", "qdrant", "milvus", "vector database", "vector embeddings"],
+
+  // Practices & APIs
+  "Git / Version Control": ["git", "github", "gitlab", "version control"],
+  "CI/CD": ["ci/cd", "continuous integration", "jenkins", "github actions"],
+  "REST APIs": ["rest api", "restful", "fastapi", "flask", "django", "graphql"],
+  "Agile / Scrum": ["agile", "scrum", "kanban", "sprints"]
+};
+
+const ROLE_BASELINES: Record<string, string[]> = {
+  "analyst": ["SQL", "Python", "Tableau", "Power BI", "Excel", "Data Modeling", "A/B Testing", "Statistics"],
+  "scientist": ["Python", "SQL", "Machine Learning", "Scikit-Learn", "Statistics", "PyTorch", "Pandas", "A/B Testing"],
+  "engineer": ["Python", "SQL", "Spark", "AWS", "Data Pipelines", "ETL / ELT", "Docker", "Snowflake", "Airflow"],
+  "learning": ["Python", "PyTorch", "TensorFlow", "Machine Learning", "Deep Learning", "MLOps", "NLP", "Docker"],
+  "ai": ["Python", "LLMs / Generative AI", "PyTorch", "Machine Learning", "NLP", "Vector DB", "Docker"]
+};
+
+function analyzeAtsLocally(resumeText: string, jobDescription: string, jobTitle?: string) {
   const resumeLower = (resumeText || '').toLowerCase();
-  const jdLower = (jobDescription || '').toLowerCase();
+  const jdCombined = `${jobDescription || ''} ${jobTitle || ''}`.toLowerCase();
 
-  // Extract skills mentioned in JD
-  const requiredInJd = commonTechSkills.filter(skill => {
-    const pattern = new RegExp(`\\b${escapeRegex(skill)}\\b`, 'i');
-    return pattern.test(jdLower);
-  });
+  const requiredSkills: string[] = [];
+
+  // Match all skills present in JD
+  for (const [skillName, patterns] of Object.entries(SKILL_DICTIONARY)) {
+    for (const pattern of patterns) {
+      const reg = new RegExp(`\\b${pattern}\\b`, 'i');
+      if (reg.test(jdCombined)) {
+        requiredSkills.push(skillName);
+        break;
+      }
+    }
+  }
+
+  // If JD is short or no specific dictionary skills matched, infer from role title
+  if (requiredSkills.length < 3) {
+    for (const [roleKey, defaultSkills] of Object.entries(ROLE_BASELINES)) {
+      if (jdCombined.includes(roleKey)) {
+        defaultSkills.forEach(s => {
+          if (!requiredSkills.includes(s)) requiredSkills.push(s);
+        });
+        break;
+      }
+    }
+    // Fallback baseline if still empty
+    if (requiredSkills.length === 0) {
+      requiredSkills.push("SQL", "Python", "Data Modeling", "Excel", "Tableau", "Statistics");
+    }
+  }
 
   const matchedSkills: string[] = [];
   const missingKeywords: string[] = [];
 
-  requiredInJd.forEach(skill => {
-    const pattern = new RegExp(`\\b${escapeRegex(skill)}\\b`, 'i');
-    if (pattern.test(resumeLower)) {
+  for (const skill of requiredSkills) {
+    const patterns = SKILL_DICTIONARY[skill] || [skill.toLowerCase()];
+    const hasSkill = patterns.some(p => {
+      const reg = new RegExp(`\\b${p}\\b`, 'i');
+      return reg.test(resumeLower);
+    });
+
+    if (hasSkill) {
       matchedSkills.push(skill);
     } else {
       missingKeywords.push(skill);
     }
-  });
-
-  let score = 50;
-  if (requiredInJd.length > 0) {
-    const keywordRatio = matchedSkills.length / requiredInJd.length;
-    score = Math.min(95, Math.max(30, Math.round(keywordRatio * 100)));
-  } else {
-    // Word overlap fallback if no specific keywords matched
-    const jdWords = Array.from(new Set(jdLower.match(/[a-z]{4,}/g) || []));
-    const resumeWords = new Set(resumeLower.match(/[a-z]{4,}/g) || []);
-    let matchCount = 0;
-    jdWords.forEach(w => {
-      if (resumeWords.has(w)) matchCount++;
-    });
-    const ratio = jdWords.length > 0 ? matchCount / jdWords.length : 0.6;
-    score = Math.min(95, Math.max(35, Math.round(ratio * 120)));
   }
 
+  const keywordRatio = requiredSkills.length > 0 ? matchedSkills.length / requiredSkills.length : 0.5;
+  const score = Math.min(95, Math.max(30, Math.round(keywordRatio * 100)));
   const status = score >= 85 ? "Perfect Match" : score >= 65 ? "Strong Match" : "Needs Improvement";
 
   return {
@@ -64,10 +140,10 @@ function analyzeAtsLocally(resumeText: string, jobDescription: string) {
 
 export async function POST(req: Request) {
   try {
-    const { resumeText, jobDescription } = await req.json();
+    const { resumeText, jobDescription, jobTitle } = await req.json();
 
-    if (!resumeText || !jobDescription) {
-      return NextResponse.json({ error: "Missing resumeText or jobDescription" }, { status: 400 });
+    if (!resumeText || (!jobDescription && !jobTitle)) {
+      return NextResponse.json({ error: "Missing resumeText or job details" }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -80,6 +156,7 @@ export async function POST(req: Request) {
           You are an expert technical recruiter and ATS (Applicant Tracking System) algorithm.
           Compare the following Resume to the Job Description.
 
+          Job Title: ${jobTitle || ''}
           Job Description:
           ${jobDescription}
 
@@ -118,7 +195,9 @@ export async function POST(req: Request) {
         if (responseText) {
           const cleanJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
           const parsedData = JSON.parse(cleanJsonString);
-          return NextResponse.json(parsedData);
+          if (parsedData && typeof parsedData.score === 'number') {
+            return NextResponse.json(parsedData);
+          }
         }
       } catch (aiErr) {
         console.warn("Gemini AI attempt failed, using ATS matcher fallback:", aiErr);
@@ -126,7 +205,7 @@ export async function POST(req: Request) {
     }
 
     // 2. High-speed, 100% resilient ATS Keyword Matcher
-    const localResult = analyzeAtsLocally(resumeText, jobDescription);
+    const localResult = analyzeAtsLocally(resumeText, jobDescription, jobTitle);
     return NextResponse.json(localResult);
 
   } catch (error: any) {
