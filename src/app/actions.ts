@@ -20,7 +20,7 @@ export async function fetchLatestDataJobs() {
 
     // 2. Fetch ALL jobs (bypassing the 1000 row limit by paginating)
     const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - 60)
+    cutoffDate.setDate(cutoffDate.getDate() - 30)
     
     let allJobs: any[] = []
     let hasMore = true
