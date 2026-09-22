@@ -69,6 +69,17 @@ export default function Home() {
   };
 
 
+  const resetAddJobForm = () => {
+    setAddJobUrl('')
+    setAddJobTitle('')
+    setAddJobCompany('')
+    setAddJobExp('')
+    setAddJobLocation('Remote')
+    setAddJobPostedDate(new Date().toISOString().split('T')[0])
+    setAddJobError('')
+    setIsAddJobModalOpen(false)
+  }
+
   const verifyJobUrl = async () => {
     if (!addJobUrl) return
     setIsVerifyingJob(true)
@@ -785,7 +796,7 @@ export default function Home() {
       {/* Add Job Modal */}
       {isAddJobModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddJobModalOpen(false)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={resetAddJobForm}></div>
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -880,7 +891,7 @@ export default function Home() {
 
             <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
               <button 
-                onClick={() => setIsAddJobModalOpen(false)}
+                onClick={resetAddJobForm}
                 className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >
                 Cancel
