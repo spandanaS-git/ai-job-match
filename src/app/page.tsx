@@ -352,10 +352,10 @@ export default function Home() {
                     <div className="flex gap-4">
             <button
               onClick={() => setIsAddJobModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg text-sm"
+              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg text-sm whitespace-nowrap"
             >
               <Plus className="size-5" />
-              <span className="hidden md:inline">Add Job</span>
+              <span>Add Job</span>
             </button>
             <div className="relative w-full md:w-56 z-20">
               <button 
@@ -486,13 +486,18 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
                     <span className="inline-block px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10 shadow-sm text-slate-300">
                       {job.experience_required || "Not Specified"}
                     </span>
+                    {job.location && (
+                      <span className="inline-block px-3 py-1 bg-white/5 rounded-full text-xs font-medium border border-white/10 shadow-sm text-slate-400">
+                        {job.location}
+                      </span>
+                    )}
                   </div>
                   
-                  <div className="flex justify-between items-center mt-auto pt-3 border-t border-white/5">
+                  <div className="flex flex-wrap justify-between items-center mt-auto pt-3 border-t border-white/5 gap-2">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-slate-300">
                         {formatExactDate(job.posted_at || job.created_at)}
@@ -501,14 +506,23 @@ export default function Home() {
                         {calculateDaysAgo(job.posted_at || job.created_at)}
                       </span>
                     </div>
-                    <a 
-                      href={job.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400 font-medium text-sm hover:bg-blue-600 hover:text-white transition-all border border-blue-500/30 shadow-lg"
-                    >
-                      Apply <ExternalLink className="size-3.5" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => { setSelectedJob(job); setIsMatchModalOpen(true); setMatchResult(null); setResumeText(""); }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium text-sm hover:bg-indigo-600 hover:text-white transition-all border border-indigo-500/30 shadow-lg"
+                        title="Check ATS Match Score"
+                      >
+                        <Sparkles className="size-3.5" /> Check Score
+                      </button>
+                      <a 
+                        href={job.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600/20 text-blue-400 font-medium text-sm hover:bg-blue-600 hover:text-white transition-all border border-blue-500/30 shadow-lg"
+                      >
+                        Apply <ExternalLink className="size-3.5" />
+                      </a>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -812,15 +826,15 @@ export default function Home() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10"
+            className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-10 max-h-[90vh] flex flex-col"
           >
-            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+            <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Plus className="size-5 text-blue-400" /> Add Job Manually
               </h3>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               {addJobError && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm flex items-start gap-2">
                   <AlertCircle className="size-4 mt-0.5 shrink-0" />
@@ -868,7 +882,7 @@ export default function Home() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">Experience Level</label>
                   <input 
