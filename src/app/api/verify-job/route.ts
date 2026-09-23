@@ -22,8 +22,8 @@ function extractExperience(text: string): string {
 
   const foundYears: number[] = []
 
-  // Pattern 1: Numeric counts
-  const p1 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?(\d+)(?:\s*-\s*\d+)?\+?\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
+  // Pattern 1: Numeric counts (with optional written numbers or parenthesized digits e.g. "ONE (1) year", "1+ years", "1-3 years")
+  const p1 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\s*)?\(?(\d+)\)?(?:\s*-\s*\d+)?\+?\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
   for (const m of clean.matchAll(p1)) {
     const num = parseInt(m[1], 10)
     if (num >= 1 && num <= 20) {
@@ -31,8 +31,8 @@ function extractExperience(text: string): string {
     }
   }
 
-  // Pattern 2: Written-out counts
-  const p2 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
+  // Pattern 2: Written-out counts e.g. "one year", "two years", "ONE (1) year"
+  const p2 = /(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s+|typical(?:ly)?\s*,?\s*)?\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty)\b(?:\s*\(\s*\d+\s*\))?\s*(?:or\s+more\s+)?years?(?:[^\.\n\r;]{0,60}?(?:experience|exp|background|track\s*record|demonstrated|relevant|working))?/gi
   for (const m of clean.matchAll(p2)) {
     const word = m[1].toLowerCase()
     if (numberWords[word]) {
@@ -124,19 +124,27 @@ export async function POST(req: Request) {
     try {
       const urlObj = new URL(url)
       if (urlObj.hostname.includes('myworkdayjobs.com')) {
-        const tenant = urlObj.hostname.split('.')[0]   // e.g. "cfindustries"
+        const tenant = urlObj.hostname.split('.')[0]   // e.g. "guidehouse"
         const wdVersion = urlObj.hostname.split('.')[1] // e.g. "wd1"
         const pathParts = urlObj.pathname.split('/').filter(Boolean)
-        const careerPath = pathParts[0]  // e.g. "careers"
-        const lastSegment = pathParts[pathParts.length - 1]
-        const jobId = lastSegment.split('_').pop() || ''
+        
+        const jobIdx = pathParts.indexOf('job')
+        let careerSite = pathParts[0]
+        let jobPath = ''
+        if (jobIdx > 0) {
+          careerSite = pathParts[jobIdx - 1]
+          jobPath = pathParts.slice(jobIdx + 1).join('/')
+        } else if (pathParts.length > 1) {
+          careerSite = pathParts[0]
+          jobPath = pathParts.slice(1).join('/')
+        }
 
         company = tenant.replace(/([a-z])([A-Z])/g, '$1 $2')
                         .split(/[-_]/)
                         .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
                         .join(' ')
 
-        const apiUrl = `https://${tenant}.${wdVersion}.myworkdayjobs.com/wday/cxs/${tenant}/${careerPath}/jobs/${jobId}`
+        const apiUrl = `https://${tenant}.${wdVersion}.myworkdayjobs.com/wday/cxs/${tenant}/${careerSite}/job/${jobPath}`
         const wdRes = await fetch(apiUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -147,7 +155,11 @@ export async function POST(req: Request) {
           const wdData = await wdRes.json()
           const posting = wdData.jobPostingInfo || wdData
           if (posting.title) title = posting.title
-          if (posting.postedOn) postedDate = parseRelativeOrAbsoluteDate(posting.postedOn)
+          if (posting.startDate) {
+            postedDate = parseRelativeOrAbsoluteDate(posting.startDate)
+          } else if (posting.postedOn) {
+            postedDate = parseRelativeOrAbsoluteDate(posting.postedOn)
+          }
           
           // Location from Workday
           if (typeof posting.location === 'string' && posting.location.trim()) {
@@ -172,18 +184,16 @@ export async function POST(req: Request) {
           const expFromDesc = extractExperience(descHtml)
           if (expFromDesc) experience = expFromDesc
         } else {
+          const lastSegment = pathParts[pathParts.length - 1] || ''
           const slug = lastSegment.replace(/_[^_]+$/, '')
           title = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
         }
 
-        // Fallback location from URL path e.g. /job/Deerfield-IL/...
-        if (!location && pathParts.includes('job')) {
-          const jobIndex = pathParts.indexOf('job')
-          if (jobIndex + 2 < pathParts.length) {
-            const locSegment = pathParts[jobIndex + 1]
-            if (locSegment && locSegment !== lastSegment) {
-              location = locSegment.replace(/[-_]/g, ', ')
-            }
+        // Fallback location from URL path e.g. /job/US-MD-Bethesda/...
+        if (!location && jobIdx !== -1 && jobIdx + 1 < pathParts.length) {
+          const locSegment = pathParts[jobIdx + 1]
+          if (locSegment && locSegment !== pathParts[pathParts.length - 1]) {
+            location = locSegment.replace(/[-_]/g, ' ')
           }
         }
       }
