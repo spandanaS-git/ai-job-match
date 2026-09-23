@@ -103,20 +103,50 @@ def is_usa_job(location_str):
 
 
 def fetch_dynamic_companies():
-    # Fetch manual jobs to discover new company slugs for greenhouse and lever
+    # Fetch manual jobs to discover new company slugs for Greenhouse, Lever, Ashby, and Workday
     try:
-        res = requests.get(f"{SUPABASE_URL}/rest/v1/jobs?source=eq.manual&select=url", headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'})
+        res = requests.get(f"{SUPABASE_URL}/rest/v1/jobs?source=eq.manual&select=url,company", headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'})
         if res.status_code == 200:
             for job in res.json():
                 url = job.get('url', '')
-                if 'boards.greenhouse.io' in url:
-                    slug = url.split('boards.greenhouse.io/')[1].split('/')[0]
+                if not url:
+                    continue
+                    
+                # Greenhouse
+                if 'boards.greenhouse.io/' in url:
+                    slug = url.split('boards.greenhouse.io/')[1].split('/')[0].split('?')[0].strip().lower()
                     if slug and slug not in GREENHOUSE_BOARDS:
                         GREENHOUSE_BOARDS.append(slug)
-                elif 'jobs.lever.co' in url:
-                    slug = url.split('jobs.lever.co/')[1].split('/')[0]
+                        print(f"  [Dynamic Discovery] Added new Greenhouse company: {slug}")
+                elif 'job-boards.greenhouse.io/' in url:
+                    slug = url.split('job-boards.greenhouse.io/')[1].split('/')[0].split('?')[0].strip().lower()
+                    if slug and slug not in GREENHOUSE_BOARDS:
+                        GREENHOUSE_BOARDS.append(slug)
+                        print(f"  [Dynamic Discovery] Added new Greenhouse company: {slug}")
+                
+                # Lever
+                elif 'jobs.lever.co/' in url:
+                    slug = url.split('jobs.lever.co/')[1].split('/')[0].split('?')[0].strip().lower()
                     if slug and slug not in LEVER_BOARDS:
                         LEVER_BOARDS.append(slug)
+                        print(f"  [Dynamic Discovery] Added new Lever company: {slug}")
+                
+                # Ashby
+                elif 'jobs.ashbyhq.com/' in url:
+                    slug = url.split('jobs.ashbyhq.com/')[1].split('/')[0].split('?')[0].strip().lower()
+                    if slug and slug not in ASHBY_BOARDS:
+                        ASHBY_BOARDS.append(slug)
+                        print(f"  [Dynamic Discovery] Added new Ashby company: {slug}")
+                
+                # Workday
+                elif 'myworkdayjobs.com' in url:
+                    match = re.search(r'https://([^.]+)\.([^.]+)\.myworkdayjobs\.com/(?:en-[A-Z]+/)?([^/]+)', url)
+                    if match:
+                        tenant, wd, site = match.group(1).lower(), match.group(2).lower(), match.group(3)
+                        existing_tenants = [b['tenant'] for b in WORKDAY_BOARDS]
+                        if tenant not in existing_tenants:
+                            WORKDAY_BOARDS.append({'tenant': tenant, 'board': site, 'wd': wd})
+                            print(f"  [Dynamic Discovery] Added new Workday company: {tenant} ({site})")
     except Exception as e:
         print("Error fetching dynamic companies:", e)
 
