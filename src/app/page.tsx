@@ -1,10 +1,9 @@
 'use client'
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef } from "react"
-import ReactMarkdown from "react-markdown"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus, Wand2, Copy, Check, Download } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
@@ -54,12 +53,6 @@ export default function Home() {
   const [isParsingPdf, setIsParsingPdf] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
-  const [showOptimizePanel, setShowOptimizePanel] = useState(false)
-  const [isOptimizing, setIsOptimizing] = useState(false)
-  const [optimizedResume, setOptimizedResume] = useState("")
-  const [copied, setCopied] = useState(false)
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
-  const resumeDocRef = useRef<HTMLDivElement>(null)
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,7 +172,6 @@ export default function Home() {
     if (!resumeText || !selectedJob) return;
     setIsAnalyzing(true);
     setMatchResult(null);
-    setOptimizedResume("");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -197,225 +189,6 @@ export default function Home() {
       alert("Analysis failed: " + err.message);
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-function generateClientTailoredResume(resumeText: string, jobTitle: string, jobDescription: string, missingKeywords: string[]): string {
-  const roleName = jobTitle || "Target Role";
-  const missingList = Array.isArray(missingKeywords) 
-    ? missingKeywords.filter(k => k && k.trim().length > 0)
-    : [];
-
-  if (!resumeText || resumeText.trim().length === 0) {
-    return `# Candidate Resume\n**Target Role:** ${roleName}\n\n* Please upload your resume to generate an optimized version.`;
-  }
-
-  const rawLines = resumeText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  
-  const phrasingTemplates = [
-    (kw: string) => `, leveraging **${kw}** methodologies to enhance efficiency and data integrity.`,
-    (kw: string) => `, utilizing **${kw}** workflows to streamline project delivery and cross-functional alignment.`,
-    (kw: string) => `, incorporating **${kw}** standards to ensure quality compliance and accuracy.`,
-    (kw: string) => `, applying **${kw}** frameworks to drive measurable operational performance.`,
-    (kw: string) => `, aligning execution with **${kw}** best practices to optimize key outcomes.`
-  ];
-
-  const sectionKeywords = {
-    summary: ['summary', 'profile', 'about', 'objective', 'overview'],
-    skills: ['skills', 'technologies', 'competencies', 'technical skills', 'tools', 'proficiencies'],
-    experience: ['experience', 'work experience', 'employment', 'work history', 'professional experience', 'projects', 'research'],
-    education: ['education', 'academic', 'degrees', 'certifications', 'qualifications']
-  };
-
-  const keywordsForExp = [...missingList];
-  let templateIndex = 0;
-  let currentSection = 'header';
-  let formattedLines: string[] = [];
-  let skillsInjected = false;
-  let bulletIndex = 0;
-
-  for (let i = 0; i < rawLines.length; i++) {
-    const line = rawLines[i];
-    const lower = line.toLowerCase();
-
-    // Detect section heading
-    const isHeading = (
-      (line.startsWith('#') || line.toUpperCase() === line || line.endsWith(':')) &&
-      line.length < 45 &&
-      !line.startsWith('*') && !line.startsWith('-') && !line.startsWith('•')
-    );
-
-    let detectedSection: string | null = null;
-    if (isHeading) {
-      for (const [sec, terms] of Object.entries(sectionKeywords)) {
-        if (terms.some(t => lower.includes(t))) {
-          detectedSection = sec;
-          break;
-        }
-      }
-    }
-
-    if (detectedSection) {
-      if (currentSection === 'skills' && !skillsInjected && missingList.length > 0) {
-        formattedLines.push(`* **ATS Optimized Competencies:** ${missingList.map(k => `**${k}**`).join(', ')}`);
-        skillsInjected = true;
-      }
-      currentSection = detectedSection;
-      const cleanHeader = line.replace(/^#+\s*/, '').replace(/:$/, '').trim();
-      formattedLines.push(`\n### ${cleanHeader.toUpperCase()}\n`);
-      continue;
-    }
-
-    // Skills section
-    if (currentSection === 'skills') {
-      const isBullet = line.startsWith('*') || line.startsWith('-') || line.startsWith('•');
-      formattedLines.push(isBullet ? `* ${line.replace(/^[*•-]\s*/, '')}` : line);
-      continue;
-    }
-
-    // Experience / Projects / Research section
-    if (currentSection === 'experience') {
-      const isBullet = line.startsWith('*') || line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./);
-      if (isBullet) {
-        let text = line.replace(/^[*•-]\s*|\d+\.\s*/, '').trim();
-        if (keywordsForExp.length > 0 && bulletIndex % 2 === 0) {
-          const kw = keywordsForExp.shift()!;
-          if (!text.toLowerCase().includes(kw.toLowerCase())) {
-            const template = phrasingTemplates[templateIndex % phrasingTemplates.length];
-            templateIndex++;
-            text = text.replace(/[.;,]+$/, '') + template(kw);
-          }
-        }
-        bulletIndex++;
-        formattedLines.push(`* ${text}`);
-      } else {
-        if (line.length < 90 && (line.includes('|') || line.includes('–') || line.includes('-') || line.match(/\b(20\d\d|19\d\d|present)\b/i))) {
-          formattedLines.push(`\n#### ${line.replace(/^#+\s*/, '')}\n`);
-        } else {
-          formattedLines.push(line);
-        }
-      }
-      continue;
-    }
-
-    // Summary section
-    if (currentSection === 'summary') {
-      if (line.length > 20 && keywordsForExp.length > 0 && !line.includes('**')) {
-        const topKw = keywordsForExp.shift()!;
-        formattedLines.push(`${line.replace(/[.;,]+$/, '')}, with targeted proficiency in **${topKw}**.`);
-      } else {
-        formattedLines.push(line);
-      }
-      continue;
-    }
-
-    // Header / General
-    if (i === 0 && line.length < 60) {
-      formattedLines.push(`# ${line.replace(/^#+\s*/, '')}`);
-      formattedLines.push(`**Target Role Alignment:** ${roleName} | **ATS Keyword Optimized**\n---`);
-    } else {
-      formattedLines.push(line);
-    }
-  }
-
-  if (!skillsInjected && missingList.length > 0) {
-    formattedLines.push(`\n### ATS KEYWORDS & CORE COMPETENCIES\n* **Targeted Job Keywords:** ${missingList.map(k => `**${k}**`).join(', ')}\n`);
-  }
-
-  return formattedLines.join('\n');
-}
-
-  const handleOptimizeResume = async () => {
-    if (!resumeText || !selectedJob) return;
-    setShowOptimizePanel(true);
-    setIsOptimizing(true);
-    setOptimizedResume("");
-
-    const runClientStreaming = async () => {
-      const fullText = generateClientTailoredResume(
-        resumeText,
-        selectedJob.title,
-        selectedJob.description || selectedJob.title,
-        matchResult?.missingKeywords || []
-      );
-      const words = fullText.split(' ');
-      let cur = "";
-      for (let i = 0; i < words.length; i += 2) {
-        cur += (i > 0 ? " " : "") + words.slice(i, i + 2).join(' ');
-        setOptimizedResume(cur);
-        await new Promise(r => setTimeout(r, 18));
-      }
-    };
-
-    try {
-      const res = await fetch("/api/optimize-resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeText,
-          jobTitle: selectedJob.title,
-          jobDescription: selectedJob.description || selectedJob.title,
-          missingKeywords: matchResult?.missingKeywords || []
-        })
-      });
-
-      if (!res.ok) {
-        await runClientStreaming();
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) {
-        await runClientStreaming();
-        return;
-      }
-
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setOptimizedResume(accumulated);
-      }
-
-      if (!accumulated || accumulated.trim().length === 0) {
-        await runClientStreaming();
-      }
-    } catch (err: any) {
-      console.warn("Server streaming issue, streaming via client engine:", err);
-      await runClientStreaming();
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (!optimizedResume) return;
-    navigator.clipboard.writeText(optimizedResume);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const downloadPDF = async () => {
-    if (!resumeDocRef.current || !optimizedResume) return;
-    setIsDownloadingPdf(true);
-    try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin: [10, 12, 10, 12],
-        filename: `${(selectedJob?.title || 'Tailored').replace(/[^a-zA-Z0-9_-]/g, '_')}_Resume.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-      };
-      await html2pdf().set(opt).from(resumeDocRef.current).save();
-    } catch (err: any) {
-      console.error("PDF Download error:", err);
-      alert("Failed to generate PDF download: " + err.message);
-    } finally {
-      setIsDownloadingPdf(false);
     }
   };
 
@@ -764,8 +537,6 @@ function generateClientTailoredResume(resumeText: string, jobTitle: string, jobD
                           setSelectedJob(job); 
                           setIsMatchModalOpen(true); 
                           setMatchResult(null); 
-                          setOptimizedResume("");
-                          setShowOptimizePanel(false);
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 font-medium text-sm hover:bg-indigo-600 hover:text-white transition-all border border-indigo-500/30 shadow-lg"
                         title="Check ATS Match Score"
@@ -885,8 +656,6 @@ function generateClientTailoredResume(resumeText: string, jobTitle: string, jobD
                               setSelectedJob(job); 
                               setIsMatchModalOpen(true); 
                               setMatchResult(null); 
-                              setOptimizedResume("");
-                              setShowOptimizePanel(false);
                             }}
                             title="Check Score"
                             className="inline-flex items-center justify-center size-8 rounded-full bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all hover:scale-110 border border-indigo-500/30 shadow-lg"
@@ -968,10 +737,10 @@ function generateClientTailoredResume(resumeText: string, jobTitle: string, jobD
       {isMatchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className={`bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${showOptimizePanel ? "max-w-5xl w-full" : "max-w-lg w-full"} max-h-[90vh]`}
-            >
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-w-lg w-full max-h-[90vh]"
+          >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="size-5 text-indigo-400" /> Check Score
@@ -1032,145 +801,60 @@ function generateClientTailoredResume(resumeText: string, jobTitle: string, jobD
               )}
 
               {matchResult && (
-                <div className={`grid grid-cols-1 ${showOptimizePanel ? "md:grid-cols-2 gap-6" : "gap-6"} animate-in fade-in duration-300`}>
-                  {/* Left Column: ATS Score & Keywords */}
-                  <div className="flex flex-col items-center gap-5">
-                    <div className="relative size-28 flex items-center justify-center">
-                      <svg className="absolute inset-0 size-full -rotate-90">
-                        <circle cx="56" cy="56" r="48" className="fill-none stroke-white/10 stroke-[6]" />
-                        <circle 
-                          cx="56" cy="56" r="48" 
-                          className={`fill-none stroke-[6] stroke-linecap-round transition-all duration-1000 ${matchResult.score > 85 ? 'stroke-emerald-500' : matchResult.score > 65 ? 'stroke-amber-500' : 'stroke-red-500'}`}
-                          strokeDasharray="301.6"
-                          strokeDashoffset={301.6 - (301.6 * matchResult.score) / 100}
-                        />
-                      </svg>
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl font-black text-white">{matchResult.score}%</span>
-                      </div>
+                <div className="flex flex-col items-center gap-5 animate-in fade-in duration-300">
+                  <div className="relative size-28 flex items-center justify-center">
+                    <svg className="absolute inset-0 size-full -rotate-90">
+                      <circle cx="56" cy="56" r="48" className="fill-none stroke-white/10 stroke-[6]" />
+                      <circle 
+                        cx="56" cy="56" r="48" 
+                        className={`fill-none stroke-[6] stroke-linecap-round transition-all duration-1000 ${matchResult.score > 85 ? 'stroke-emerald-500' : matchResult.score > 65 ? 'stroke-amber-500' : 'stroke-red-500'}`}
+                        strokeDasharray="301.6"
+                        strokeDashoffset={301.6 - (301.6 * matchResult.score) / 100}
+                      />
+                    </svg>
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-black text-white">{matchResult.score}%</span>
                     </div>
-                    
-                    <div className={`px-3.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${matchResult.score > 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                      {matchResult.score > 85 ? <CheckCircle className="size-3.5" /> : <AlertCircle className="size-3.5" />}
-                      {matchResult.status}
-                    </div>
-
-                    {matchResult.missingKeywords && matchResult.missingKeywords.length > 0 && (
-                      <div className="w-full bg-white/5 rounded-xl p-4 border border-white/10">
-                        <p className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">Critical Missing Keywords</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {matchResult.missingKeywords.map((kw: string, i: number) => (
-                            <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-medium">
-                              + {kw}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-white/10">Add these keywords to pass ATS filters.</p>
-                      </div>
-                    )}
-
-                    {!showOptimizePanel && (
-                      <button
-                        onClick={handleOptimizeResume}
-                        className="w-full py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
-                      >
-                        <Wand2 className="size-4" /> Auto-Optimize Resume with AI
-                      </button>
-                    )}
+                  </div>
+                  
+                  <div className={`px-3.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${matchResult.score > 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {matchResult.score > 85 ? <CheckCircle className="size-3.5" /> : <AlertCircle className="size-3.5" />}
+                    {matchResult.status}
                   </div>
 
-                  {/* Right Column: Live Streamed Optimized Resume */}
-                  {showOptimizePanel && (
-                    <div className="flex flex-col h-full bg-slate-950/60 rounded-xl border border-white/10 p-4 relative">
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/10">
-                        <div className="flex items-center gap-2">
-                          <Wand2 className="size-4 text-purple-400" />
-                          <span className="text-xs font-bold text-white uppercase tracking-wider">AI Tailored Resume</span>
-                        </div>
-                        {optimizedResume && !isOptimizing && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={downloadPDF}
-                              disabled={isDownloadingPdf}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
-                              title="Download professional PDF resume"
-                            >
-                              <Download className="size-3.5" />
-                              {isDownloadingPdf ? "Generating PDF..." : "Download PDF"}
-                            </button>
-                            <button
-                              onClick={copyToClipboard}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-medium transition-colors"
-                            >
-                              {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                              {copied ? "Copied!" : "Copy Markdown"}
-                            </button>
-                          </div>
-                        )}
+                  {matchResult.missingKeywords && matchResult.missingKeywords.length > 0 && (
+                    <div className="w-full bg-white/5 rounded-xl p-4 border border-white/10">
+                      <p className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">Critical Missing Keywords</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {matchResult.missingKeywords.map((kw: string, i: number) => (
+                          <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-medium">
+                            + {kw}
+                          </span>
+                        ))}
                       </div>
-
-                      <div className="flex-1 overflow-y-auto max-h-[50vh] pr-2">
-                        {/* Printable Formatted Resume Document */}
-                        <div 
-                          ref={resumeDocRef}
-                          className="bg-white text-slate-900 rounded-lg p-6 font-sans text-xs leading-relaxed shadow-md space-y-3"
-                        >
-                          <ReactMarkdown
-                            components={{
-                              h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 border-b-2 border-slate-900 pb-1 mb-2 tracking-tight uppercase text-center">{children}</h1>,
-                              h2: ({ children }) => <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-0.5 mt-3 mb-1.5">{children}</h2>,
-                              h3: ({ children }) => <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5 mt-2.5 mb-1">{children}</h3>,
-                              p: ({ children }) => <p className="text-slate-800 leading-normal mb-1">{children}</p>,
-                              ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 mb-2 text-slate-800">{children}</ul>,
-                              li: ({ children }) => <li className="leading-normal text-slate-800">{children}</li>,
-                              strong: ({ children }) => <strong className="font-semibold text-slate-950">{children}</strong>,
-                              hr: () => <hr className="my-2 border-slate-200" />
-                            }}
-                          >
-                            {optimizedResume}
-                          </ReactMarkdown>
-                          {isOptimizing && (
-                            <div className="flex items-center gap-2 pt-2 text-purple-600 text-xs font-medium">
-                              <span className="size-2 rounded-full bg-purple-600 animate-ping"></span>
-                              <span>AI is writing tailored bullet points...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <p className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-white/10">Add these keywords to pass ATS filters.</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-between items-center gap-3">
-              <div>
-                {matchResult && showOptimizePanel && !isOptimizing && (
-                  <button
-                    onClick={handleOptimizeResume}
-                    className="text-xs text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1"
-                  >
-                    <Wand2 className="size-3" /> Re-generate
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-3">
+            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
+              <button 
+                onClick={() => setIsMatchModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Close
+              </button>
+              {!matchResult && !isAnalyzing && (
                 <button 
-                  onClick={() => setIsMatchModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                  onClick={analyzeMatch}
+                  disabled={!resumeText || isParsingPdf}
+                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Close
+                  <Sparkles className="size-4" /> Analyze
                 </button>
-                {!matchResult && !isAnalyzing && (
-                  <button 
-                    onClick={analyzeMatch}
-                    disabled={!resumeText || isParsingPdf}
-                    className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    <Sparkles className="size-4" /> Analyze
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </motion.div>
         </div>
