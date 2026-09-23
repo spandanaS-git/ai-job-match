@@ -209,6 +209,8 @@ ${resumeText || 'Candidate with relevant technical background'}`;
       for (let i = 0; i < words.length; i += 3) {
         const chunk = words.slice(i, i + 3).join(' ') + ' ';
         controller.enqueue(encoder.encode(chunk));
+        // Provide subtle streaming cadence
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
       controller.close();
     }
