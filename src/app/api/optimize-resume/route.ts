@@ -73,7 +73,7 @@ ${resumeText}`;
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 3000
+              maxOutputTokens: 4096
             }
           })
         });
@@ -95,31 +95,66 @@ ${resumeText}`;
       });
     }
 
-    // Transform SSE stream from Google AI into a clean text stream for the browser
+    // Robust SSE stream transformer with chunk buffering
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
+    let sseBuffer = '';
 
     const transformStream = new TransformStream({
       transform(chunk, controller) {
-        const text = decoder.decode(chunk);
-        const lines = text.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr && dataStr !== '[DONE]') {
-              try {
-                const parsed = JSON.parse(dataStr);
-                const candidates = parsed.candidates || [];
-                for (const candidate of candidates) {
-                  const parts = candidate.content?.parts || [];
-                  for (const part of parts) {
-                    if (part.text) {
-                      controller.enqueue(encoder.encode(part.text));
+        sseBuffer += decoder.decode(chunk, { stream: true });
+        const events = sseBuffer.split('\n\n');
+        // Keep the potentially incomplete event in buffer
+        sseBuffer = events.pop() || '';
+
+        for (const event of events) {
+          const lines = event.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data:')) {
+              const dataStr = trimmed.slice(5).trim();
+              if (dataStr && dataStr !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const candidates = parsed.candidates || [];
+                  for (const candidate of candidates) {
+                    const parts = candidate.content?.parts || [];
+                    for (const part of parts) {
+                      if (part.text) {
+                        controller.enqueue(encoder.encode(part.text));
+                      }
                     }
                   }
+                } catch (err) {
+                  // Partial JSON error
                 }
-              } catch (err) {
-                // Ignore parse errors on partial JSON chunks
+              }
+            }
+          }
+        }
+      },
+      flush(controller) {
+        if (sseBuffer.trim()) {
+          const lines = sseBuffer.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data:')) {
+              const dataStr = trimmed.slice(5).trim();
+              if (dataStr && dataStr !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const candidates = parsed.candidates || [];
+                  for (const candidate of candidates) {
+                    const parts = candidate.content?.parts || [];
+                    for (const part of parts) {
+                      if (part.text) {
+                        controller.enqueue(encoder.encode(part.text));
+                      }
+                    }
+                  }
+                } catch (err) {
+                  // Ignore
+                }
               }
             }
           }
