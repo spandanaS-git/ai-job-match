@@ -3,57 +3,128 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 function generateSmartTailoredResume(resumeText: string, jobTitle: string, jobDescription: string, missingKeywords: string[]): string {
-  const roleName = jobTitle || "Technical Professional";
-  const missingList = Array.isArray(missingKeywords) && missingKeywords.length > 0
-    ? missingKeywords
+  const roleName = jobTitle || "Target Role";
+  const missingList = Array.isArray(missingKeywords) 
+    ? missingKeywords.filter(k => k && k.trim().length > 0)
     : [];
 
-  // Extract candidate name from first non-empty line of resume if available
-  const lines = (resumeText || '').split('\n').map(l => l.trim()).filter(Boolean);
-  const candidateName = lines.length > 0 && lines[0].length < 50 && !lines[0].includes(':')
-    ? lines[0].replace(/^#+\s*/, '')
-    : "Candidate Name";
+  if (!resumeText || resumeText.trim().length === 0) {
+    return `# Candidate Resume\n**Target Role:** ${roleName}\n\n* Please upload your resume to generate an optimized version.`;
+  }
 
-  // Categorize missing skills
-  const missingSkillsFormatted = missingList.length > 0
-    ? missingList.map(s => `**${s}**`).join(', ')
-    : "Advanced Technical Competencies, Cross-Functional Leadership";
+  const rawLines = resumeText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  const phrasingTemplates = [
+    (kw: string) => `, leveraging **${kw}** methodologies to enhance efficiency and data integrity.`,
+    (kw: string) => `, utilizing **${kw}** workflows to streamline project delivery and cross-functional alignment.`,
+    (kw: string) => `, incorporating **${kw}** standards to ensure quality compliance and accuracy.`,
+    (kw: string) => `, applying **${kw}** frameworks to drive measurable operational performance.`,
+    (kw: string) => `, aligning execution with **${kw}** best practices to optimize key outcomes.`
+  ];
 
-  return `# ${candidateName}
-**Target Role:** ${roleName} | **ATS Match Status:** Highly Qualified (95%+ Match)
+  const sectionKeywords = {
+    summary: ['summary', 'profile', 'about', 'objective', 'overview'],
+    skills: ['skills', 'technologies', 'competencies', 'technical skills', 'tools', 'proficiencies'],
+    experience: ['experience', 'work experience', 'employment', 'work history', 'professional experience', 'projects', 'research'],
+    education: ['education', 'academic', 'degrees', 'certifications', 'qualifications']
+  };
 
----
+  const keywordsForExp = [...missingList];
+  let templateIndex = 0;
+  let currentSection = 'header';
+  let formattedLines: string[] = [];
+  let skillsInjected = false;
+  let bulletIndex = 0;
 
-### PROFESSIONAL SUMMARY
-Dynamic, results-driven professional specializing in **${roleName}** with extensive experience delivering high-impact solutions. Proven track record of leveraging industry-standard tools including ${missingSkillsFormatted} to streamline workflows, enhance operational efficiency, and drive business growth. Adept at bridging technical execution with strategic goals to achieve measurable outcomes in fast-paced environments.
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    const lower = line.toLowerCase();
 
----
+    // Detect section heading
+    const isHeading = (
+      (line.startsWith('#') || line.toUpperCase() === line || line.endsWith(':')) &&
+      line.length < 45 &&
+      !line.startsWith('*') && !line.startsWith('-') && !line.startsWith('•')
+    );
 
-### CORE COMPETENCIES & TECHNICAL SKILLS
-* **Primary Domain Expertise:** ${roleName}, Strategic Planning, Process Optimization, System Architecture
-* **Tools & Key Technologies:** ${missingSkillsFormatted}, Data Analysis, Workflow Automation
-* **Methodologies & Collaboration:** Agile / Scrum, Cross-Functional Leadership, Continuous Improvement, Quality Assurance
+    let detectedSection: string | null = null;
+    if (isHeading) {
+      for (const [sec, terms] of Object.entries(sectionKeywords)) {
+        if (terms.some(t => lower.includes(t))) {
+          detectedSection = sec;
+          break;
+        }
+      }
+    }
 
----
+    if (detectedSection) {
+      if (currentSection === 'skills' && !skillsInjected && missingList.length > 0) {
+        formattedLines.push(`* **ATS Optimized Competencies:** ${missingList.map(k => `**${k}**`).join(', ')}`);
+        skillsInjected = true;
+      }
+      currentSection = detectedSection;
+      const cleanHeader = line.replace(/^#+\s*/, '').replace(/:$/, '').trim();
+      formattedLines.push(`\n### ${cleanHeader.toUpperCase()}\n`);
+      continue;
+    }
 
-### PROFESSIONAL EXPERIENCE
+    // Skills section
+    if (currentSection === 'skills') {
+      const isBullet = line.startsWith('*') || line.startsWith('-') || line.startsWith('•');
+      formattedLines.push(isBullet ? `* ${line.replace(/^[*•-]\s*/, '')}` : line);
+      continue;
+    }
 
-#### Senior Specialist / Lead Contributor — Technical Operations
-* **Spearheaded** end-to-end implementation of scalable processes, resulting in a **35% reduction** in turnaround time and significantly enhanced productivity.
-* **Architected & Deployed** technical workflows utilizing ${missingList.slice(0, 3).join(', ') || 'modern industry platforms'}, ensuring 99.9% reliability and seamless stakeholder alignment.
-* **Engineered** automated reporting and operational frameworks that improved data-driven decision making across cross-functional leadership teams.
-* **Optimized** legacy procedures by integrating best practices in ${missingList[0] || 'domain tooling'}, accelerating delivery cycles by **25%**.
+    // Experience / Projects / Research section
+    if (currentSection === 'experience') {
+      const isBullet = line.startsWith('*') || line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./);
+      if (isBullet) {
+        let text = line.replace(/^[*•-]\s*|\d+\.\s*/, '').trim();
+        if (keywordsForExp.length > 0 && bulletIndex % 2 === 0) {
+          const kw = keywordsForExp.shift()!;
+          if (!text.toLowerCase().includes(kw.toLowerCase())) {
+            const template = phrasingTemplates[templateIndex % phrasingTemplates.length];
+            templateIndex++;
+            text = text.replace(/[.;,]+$/, '') + template(kw);
+          }
+        }
+        bulletIndex++;
+        formattedLines.push(`* ${text}`);
+      } else {
+        if (line.length < 90 && (line.includes('|') || line.includes('–') || line.includes('-') || line.match(/\b(20\d\d|19\d\d|present)\b/i))) {
+          formattedLines.push(`\n#### ${line.replace(/^#+\s*/, '')}\n`);
+        } else {
+          formattedLines.push(line);
+        }
+      }
+      continue;
+    }
 
-#### Professional Experience & Achievements
-* **Collaborated** with executive stakeholders and engineering teams to define roadmap priorities and deliver high-value project milestones on time and under budget.
-* **Streamlined** operational workflows through rigorous analysis and automation, capturing over **$150K in annual cost efficiencies**.
-* **Championed** standard operating procedures and technical documentation, mentoring team members on adoption of ${missingList[1] || 'advanced tooling'}.
+    // Summary section
+    if (currentSection === 'summary') {
+      if (line.length > 20 && keywordsForExp.length > 0 && !line.includes('**')) {
+        const topKw = keywordsForExp.shift()!;
+        formattedLines.push(`${line.replace(/[.;,]+$/, '')}, with targeted proficiency in **${topKw}**.`);
+      } else {
+        formattedLines.push(line);
+      }
+      continue;
+    }
 
----
+    // Header / General
+    if (i === 0 && line.length < 60) {
+      formattedLines.push(`# ${line.replace(/^#+\s*/, '')}`);
+      formattedLines.push(`**Target Role Alignment:** ${roleName} | **ATS Keyword Optimized**\n---`);
+    } else {
+      formattedLines.push(line);
+    }
+  }
 
-### EDUCATION & CERTIFICATIONS
-* **Relevant Academic Degree / Technical Education**
-* **Professional Development:** Continuous education in ${missingList.slice(0, 2).join(', ') || 'Modern Technical Architectures'}`;
+  if (!skillsInjected && missingList.length > 0) {
+    formattedLines.push(`\n### ATS KEYWORDS & CORE COMPETENCIES\n* **Targeted Job Keywords:** ${missingList.map(k => `**${k}**`).join(', ')}\n`);
+  }
+
+  return formattedLines.join('\n');
 }
 
 export async function POST(req: NextRequest) {
