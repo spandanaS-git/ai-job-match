@@ -1,9 +1,10 @@
 'use client'
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import ReactMarkdown from "react-markdown"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus, Wand2, Copy, Check } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus, Wand2, Copy, Check, Download } from "lucide-react"
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
@@ -56,6 +57,8 @@ export default function Home() {
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizedResume, setOptimizedResume] = useState("")
   const [copied, setCopied] = useState(false)
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
+  const resumeDocRef = useRef<HTMLDivElement>(null)
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -242,6 +245,27 @@ export default function Home() {
     navigator.clipboard.writeText(optimizedResume);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadPDF = async () => {
+    if (!resumeDocRef.current || !optimizedResume) return;
+    setIsDownloadingPdf(true);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const opt: any = {
+        margin: [10, 12, 10, 12],
+        filename: `${(selectedJob?.title || 'Tailored').replace(/[^a-zA-Z0-9_-]/g, '_')}_Resume.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+      };
+      await html2pdf().set(opt).from(resumeDocRef.current).save();
+    } catch (err: any) {
+      console.error("PDF Download error:", err);
+      alert("Failed to generate PDF download: " + err.message);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const itemsPerPage = 20
@@ -895,27 +919,60 @@ export default function Home() {
                   {/* Right Column: Live Streamed Optimized Resume */}
                   {(optimizedResume || isOptimizing) && (
                     <div className="flex flex-col h-full bg-slate-950/60 rounded-xl border border-white/10 p-4 relative">
-                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/10">
                         <div className="flex items-center gap-2">
                           <Wand2 className="size-4 text-purple-400" />
                           <span className="text-xs font-bold text-white uppercase tracking-wider">AI Tailored Resume</span>
                         </div>
                         {optimizedResume && !isOptimizing && (
-                          <button
-                            onClick={copyToClipboard}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-medium transition-colors"
-                          >
-                            {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                            {copied ? "Copied!" : "Copy Markdown"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={downloadPDF}
+                              disabled={isDownloadingPdf}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                              title="Download professional PDF resume"
+                            >
+                              <Download className="size-3.5" />
+                              {isDownloadingPdf ? "Generating PDF..." : "Download PDF"}
+                            </button>
+                            <button
+                              onClick={copyToClipboard}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-medium transition-colors"
+                            >
+                              {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                              {copied ? "Copied!" : "Copy Markdown"}
+                            </button>
+                          </div>
                         )}
                       </div>
 
-                      <div className="flex-1 overflow-y-auto max-h-[45vh] pr-2 text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
-                        {optimizedResume}
-                        {isOptimizing && (
-                          <span className="inline-block w-1.5 h-3 ml-0.5 bg-purple-400 animate-pulse align-middle"></span>
-                        )}
+                      <div className="flex-1 overflow-y-auto max-h-[50vh] pr-2">
+                        {/* Printable Formatted Resume Document */}
+                        <div 
+                          ref={resumeDocRef}
+                          className="bg-white text-slate-900 rounded-lg p-6 font-sans text-xs leading-relaxed shadow-md space-y-3"
+                        >
+                          <ReactMarkdown
+                            components={{
+                              h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 border-b-2 border-slate-900 pb-1 mb-2 tracking-tight uppercase text-center">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-300 pb-0.5 mt-3 mb-1.5">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5 mt-2.5 mb-1">{children}</h3>,
+                              p: ({ children }) => <p className="text-slate-800 leading-normal mb-1">{children}</p>,
+                              ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 mb-2 text-slate-800">{children}</ul>,
+                              li: ({ children }) => <li className="leading-normal text-slate-800">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold text-slate-950">{children}</strong>,
+                              hr: () => <hr className="my-2 border-slate-200" />
+                            }}
+                          >
+                            {optimizedResume}
+                          </ReactMarkdown>
+                          {isOptimizing && (
+                            <div className="flex items-center gap-2 pt-2 text-purple-600 text-xs font-medium">
+                              <span className="size-2 rounded-full bg-purple-600 animate-ping"></span>
+                              <span>AI is writing tailored bullet points...</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
