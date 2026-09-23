@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus } from "lucide-react"
+import { ExternalLink, Database, ChevronDown, Loader2, Search, Sparkles, FileText, X, CheckCircle, AlertCircle, Plus, Wand2, Copy, Check } from "lucide-react"
 import { fetchLatestDataJobs } from "./actions"
 
 export default function Home() {
@@ -53,6 +53,9 @@ export default function Home() {
   const [isParsingPdf, setIsParsingPdf] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [matchResult, setMatchResult] = useState<any>(null)
+  const [isOptimizing, setIsOptimizing] = useState(false)
+  const [optimizedResume, setOptimizedResume] = useState("")
+  const [copied, setCopied] = useState(false)
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,6 +175,7 @@ export default function Home() {
     if (!resumeText || !selectedJob) return;
     setIsAnalyzing(true);
     setMatchResult(null);
+    setOptimizedResume("");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -190,6 +194,54 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleOptimizeResume = async () => {
+    if (!resumeText || !selectedJob) return;
+    setIsOptimizing(true);
+    setOptimizedResume("");
+    try {
+      const res = await fetch("/api/optimize-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText,
+          jobTitle: selectedJob.title,
+          jobDescription: selectedJob.description || selectedJob.title,
+          missingKeywords: matchResult?.missingKeywords || []
+        })
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to start resume optimization");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream available");
+
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setOptimizedResume(accumulated);
+      }
+    } catch (err: any) {
+      console.error("Optimize error:", err);
+      alert("Resume optimization error: " + err.message);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!optimizedResume) return;
+    navigator.clipboard.writeText(optimizedResume);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const itemsPerPage = 20
@@ -731,7 +783,7 @@ export default function Home() {
           <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={"bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-w-lg w-full max-h-[90vh]"}
+              className={`bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${optimizedResume || isOptimizing ? "max-w-5xl w-full" : "max-w-lg w-full"} max-h-[90vh]`}
             >
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -793,61 +845,112 @@ export default function Home() {
               )}
 
               {matchResult && (
-                <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
-                  <div className="relative size-32 flex items-center justify-center">
-                    <svg className="absolute inset-0 size-full -rotate-90">
-                      <circle cx="64" cy="64" r="56" className="fill-none stroke-white/10 stroke-[8]" />
-                      <circle 
-                        cx="64" cy="64" r="56" 
-                        className={`fill-none stroke-[8] stroke-linecap-round transition-all duration-1000 ${matchResult.score > 85 ? 'stroke-emerald-500' : matchResult.score > 65 ? 'stroke-amber-500' : 'stroke-red-500'}`}
-                        strokeDasharray="351.8"
-                        strokeDashoffset={351.8 - (351.8 * matchResult.score) / 100}
-                      />
-                    </svg>
-                    <div className="flex flex-col items-center">
-                      <span className="text-3xl font-black text-white">{matchResult.score}%</span>
+                <div className={`grid grid-cols-1 ${optimizedResume || isOptimizing ? "md:grid-cols-2 gap-6" : "gap-6"} animate-in fade-in duration-300`}>
+                  {/* Left Column: ATS Score & Keywords */}
+                  <div className="flex flex-col items-center gap-5">
+                    <div className="relative size-28 flex items-center justify-center">
+                      <svg className="absolute inset-0 size-full -rotate-90">
+                        <circle cx="56" cy="56" r="48" className="fill-none stroke-white/10 stroke-[6]" />
+                        <circle 
+                          cx="56" cy="56" r="48" 
+                          className={`fill-none stroke-[6] stroke-linecap-round transition-all duration-1000 ${matchResult.score > 85 ? 'stroke-emerald-500' : matchResult.score > 65 ? 'stroke-amber-500' : 'stroke-red-500'}`}
+                          strokeDasharray="301.6"
+                          strokeDashoffset={301.6 - (301.6 * matchResult.score) / 100}
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center">
+                        <span className="text-2xl font-black text-white">{matchResult.score}%</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className={`px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 ${matchResult.score > 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                    {matchResult.score > 85 ? <CheckCircle className="size-4" /> : <AlertCircle className="size-4" />}
-                    {matchResult.status}
+                    
+                    <div className={`px-3.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${matchResult.score > 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                      {matchResult.score > 85 ? <CheckCircle className="size-3.5" /> : <AlertCircle className="size-3.5" />}
+                      {matchResult.status}
+                    </div>
+
+                    {matchResult.missingKeywords && matchResult.missingKeywords.length > 0 && (
+                      <div className="w-full bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p className="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">Critical Missing Keywords</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {matchResult.missingKeywords.map((kw: string, i: number) => (
+                            <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-medium">
+                              + {kw}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-3 pt-2 border-t border-white/10">Add these keywords to pass ATS filters.</p>
+                      </div>
+                    )}
+
+                    {!optimizedResume && !isOptimizing && (
+                      <button
+                        onClick={handleOptimizeResume}
+                        className="w-full py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white transition-all shadow-lg flex items-center justify-center gap-2 text-sm"
+                      >
+                        <Wand2 className="size-4" /> Auto-Optimize Resume with AI
+                      </button>
+                    )}
                   </div>
 
-                  {matchResult.missingKeywords && matchResult.missingKeywords.length > 0 && (
-                    <div className="w-full bg-white/5 rounded-xl p-4 border border-white/10">
-                      <p className="text-sm font-medium text-slate-300 mb-3">Critical Missing Keywords:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {matchResult.missingKeywords.map((kw: string, i: number) => (
-                          <span key={i} className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-xs font-medium">
-                            + {kw}
-                          </span>
-                        ))}
+                  {/* Right Column: Live Streamed Optimized Resume */}
+                  {(optimizedResume || isOptimizing) && (
+                    <div className="flex flex-col h-full bg-slate-950/60 rounded-xl border border-white/10 p-4 relative">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+                        <div className="flex items-center gap-2">
+                          <Wand2 className="size-4 text-purple-400" />
+                          <span className="text-xs font-bold text-white uppercase tracking-wider">AI Tailored Resume</span>
+                        </div>
+                        {optimizedResume && !isOptimizing && (
+                          <button
+                            onClick={copyToClipboard}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-medium transition-colors"
+                          >
+                            {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                            {copied ? "Copied!" : "Copy Markdown"}
+                          </button>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-4 pt-4 border-t border-white/10">Add these keywords to beat the ATS filter.</p>
+
+                      <div className="flex-1 overflow-y-auto max-h-[45vh] pr-2 text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
+                        {optimizedResume}
+                        {isOptimizing && (
+                          <span className="inline-block w-1.5 h-3 ml-0.5 bg-purple-400 animate-pulse align-middle"></span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
-              <button 
-                onClick={() => setIsMatchModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-              >
-                Close
-              </button>
-              {!matchResult && !isAnalyzing && (
+            <div className="p-4 border-t border-white/10 bg-white/[0.02] flex justify-between items-center gap-3">
+              <div>
+                {matchResult && (optimizedResume || isOptimizing) && !isOptimizing && (
+                  <button
+                    onClick={handleOptimizeResume}
+                    className="text-xs text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1"
+                  >
+                    <Wand2 className="size-3" /> Re-generate
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-3">
                 <button 
-                  onClick={analyzeMatch}
-                  disabled={!resumeText || isParsingPdf}
-                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  onClick={() => setIsMatchModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
                 >
-                  <Sparkles className="size-4" /> Analyze
+                  Close
                 </button>
-              )}
-
+                {!matchResult && !isAnalyzing && (
+                  <button 
+                    onClick={analyzeMatch}
+                    disabled={!resumeText || isParsingPdf}
+                    className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Sparkles className="size-4" /> Analyze
+                  </button>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
