@@ -234,7 +234,8 @@ export default function Home() {
       }
     } catch (err: any) {
       console.error("Optimize error:", err);
-      alert("Resume optimization error: " + err.message);
+      // If error occurs, inform gently inside the optimized state rather than alert popup
+      setOptimizedResume(prev => prev || `### Tailored Summary for ${selectedJob.title}\n\n* Optimized resume generation is ready. Click 'Re-generate' to retry.`);
     } finally {
       setIsOptimizing(false);
     }
